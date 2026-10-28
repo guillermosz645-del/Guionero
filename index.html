@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F5F3EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C1B19" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>:root{padding-top:0}html,body{margin:0}</style>
+<title>Guionero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400;1,600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: hoja de papel centrada sobre un escritorio; barra de título + cinta de herramientas fija arriba, barra de estado abajo. */
+:root{
+  --desk:#E8E5DE; --bar:#F5F3EE; --page:#FDFCF9; --bg:#F5F3EE; --raise:#FBFAF7;
+  --fg:#2D2B27; --muted:#857F74; --faint:#B9B3A7; --line:#E2DED4; --rule:#D3CEC3; --tint:#F3F1EB; --hover:#ECE9E1;
+  --accent:#2F6A9E; --accent-soft:rgba(47,106,158,.11);
+  --ok:#4C8458; --warn:#B07A22; --danger:#B0473B; --overlay:rgba(45,40,32,.16);
+  --paper-shadow:0 1px 2px rgba(45,40,32,.06),0 4px 18px rgba(45,40,32,.07);
+  --shadow:0 10px 34px rgba(45,40,32,.13),0 1px 3px rgba(45,40,32,.08);
+  --sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --gut-l:max(16px,env(safe-area-inset-left,0px)); --gut-r:max(16px,env(safe-area-inset-right,0px));
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --desk:#131211; --bar:#1C1B19; --page:#21201E; --bg:#1C1B19; --raise:#252422;
+  --fg:#DCD8CF; --muted:#8E897F; --faint:#5A564F; --line:#302E2A; --rule:#3B3934; --tint:#272623; --hover:#2C2A27;
+  --accent:#80AAD3; --accent-soft:rgba(128,170,211,.14);
+  --ok:#7DB389; --warn:#D3A14E; --danger:#DB7B6E; --overlay:rgba(0,0,0,.45);
+  --paper-shadow:0 1px 2px rgba(0,0,0,.4),0 4px 18px rgba(0,0,0,.35);
+  --shadow:0 10px 34px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.4); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --desk:#131211; --bar:#1C1B19; --page:#21201E; --bg:#1C1B19; --raise:#252422;
+  --fg:#DCD8CF; --muted:#8E897F; --faint:#5A564F; --line:#302E2A; --rule:#3B3934; --tint:#272623; --hover:#2C2A27;
+  --accent:#80AAD3; --accent-soft:rgba(128,170,211,.14);
+  --ok:#7DB389; --warn:#D3A14E; --danger:#DB7B6E; --overlay:rgba(0,0,0,.45);
+  --paper-shadow:0 1px 2px rgba(0,0,0,.4),0 4px 18px rgba(0,0,0,.35);
+  --shadow:0 10px 34px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.4); color-scheme:dark }
+
+html,body{height:100%}
+body{background:var(--desk);color:var(--fg);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
+*{box-sizing:border-box}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+::selection{background:var(--accent-soft)}
+
+.chrome{transition:opacity .45s ease}
+body.typing .chrome{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.chrome,.row,.drawer{transition:none!important}}
+
+/* ---------- barra de título + cinta ---------- */
+.topbar{position:fixed;inset:0 0 auto;z-index:20;background:var(--bar);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.titlebar{display:flex;align-items:center;gap:4px;height:48px;padding:0 var(--gut-r) 0 var(--gut-l)}
+.crumb{min-width:0;flex:1;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:8px}
+.crumb b{color:var(--fg);font-weight:500}
+.ib{height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:13px;white-space:nowrap}
+.ib:hover{background:var(--hover);color:var(--fg)}
+.ib svg{width:17px;height:17px;flex:none}
+.ib.txt{color:var(--fg);font-weight:500}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--page)}
+.seg button{height:26px;padding:0 10px;border-radius:6px;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.02em}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bar)}
+.sync{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 9px;border-radius:7px;font-size:12px;color:var(--muted);white-space:nowrap}
+.sync:hover{background:var(--hover)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+.sync[data-s="synced"] .dot{background:var(--ok)}
+.sync[data-s="syncing"] .dot{background:var(--accent);animation:pulse 1s infinite alternate}
+.sync[data-s="offline"] .dot,.sync[data-s="expired"] .dot{background:var(--warn)}
+.sync[data-s="error"] .dot{background:var(--danger)}
+@keyframes pulse{to{opacity:.3}}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:12px;display:grid;place-items:center}
+
+.ribbon{display:flex;align-items:center;gap:2px;height:44px;padding:0 var(--gut-r) 0 var(--gut-l);border-top:1px solid var(--line);overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.ribbon::-webkit-scrollbar{display:none}
+.grp{display:flex;align-items:center;gap:2px;flex:none}
+.sep{width:1px;height:22px;background:var(--line);margin:0 8px;flex:none}
+.tb{height:32px;min-width:32px;padding:0 7px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--fg);font-size:12.5px;flex:none;white-space:nowrap}
+.tb:hover{background:var(--hover)}
+.tb[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.tb:disabled{opacity:.35;cursor:default;background:none}
+.tb svg{width:17px;height:17px;flex:none}
+.tb .lbl{color:var(--fg)}
+.tsel{height:30px;border:1px solid var(--line);border-radius:6px;background:var(--page);padding:0 26px 0 9px;font-size:12.5px;outline:none;flex:none;appearance:none;-webkit-appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 13px) 13px,calc(100% - 9px) 13px;background-size:4px 4px;background-repeat:no-repeat}
+.tsel:hover{border-color:var(--rule)}
+.tsel:focus{border-color:var(--accent)}
+#selFont{width:150px}#selSize{width:66px}#selStyle{width:122px}
+.spacer{flex:1;min-width:8px}
+
+/* ---------- barra de estado ---------- */
+.statusbar{position:fixed;inset:auto 0 0;z-index:20;display:flex;align-items:center;gap:14px;height:calc(32px + env(safe-area-inset-bottom,0px));
+  padding:0 var(--gut-r) env(safe-area-inset-bottom,0px) var(--gut-l);background:var(--bar);border-top:1px solid var(--line);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.statusbar b{font-weight:500;color:var(--fg)}
+.zoom{margin-left:auto;display:flex;align-items:center;gap:4px}
+.zoom button{width:24px;height:24px;border-radius:5px;display:grid;place-items:center;color:var(--muted)}
+.zoom button:hover{background:var(--hover);color:var(--fg)}
+.zoom input{width:110px;accent-color:var(--accent)}
+.zoom .pct{min-width:42px;text-align:right}
+
+/* ---------- escritorio y hoja ---------- */
+.stage{position:fixed;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;
+  padding:calc(118px + env(safe-area-inset-top,0px)) var(--gut-r) calc(80px + env(safe-area-inset-bottom,0px)) var(--gut-l)}
+.doc{--doc-font:var(--mono);--doc-size:16px;margin:0 auto;width:100%;max-width:816px;min-height:1056px;background:var(--page);box-shadow:var(--paper-shadow);border-radius:2px;
+  padding:88px 96px 120px;font-family:var(--doc-font);font-size:var(--doc-size)}
+.doc.av{max-width:1056px;min-height:816px;padding:64px 64px 96px}
+.ta{display:block;width:100%;resize:none;border:0;background:transparent;outline:none;overflow:hidden;padding:0;font-family:inherit}
+.title{font-weight:600;font-size:1.75em;line-height:1.25;letter-spacing:-.01em}
+.logline{margin-top:10px;font-style:italic;font-size:.9em;line-height:1.6;color:var(--muted)}
+.ta::placeholder,.cell::placeholder{color:var(--faint);opacity:1}
+.meta{margin:20px 0 6px;padding-bottom:14px;border-bottom:1px solid var(--line);font-family:var(--sans);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.meta span+span::before{content:"·";margin-right:14px;color:var(--faint)}
+
+/* A/V como tabla */
+.avtable{margin-top:22px;border:1px solid var(--rule);border-radius:3px}
+.avhead,.row{display:grid;grid-template-columns:2.8rem minmax(0,.82fr) minmax(0,1.18fr) 4.8rem}
+.avhead>div,.row>*{padding:10px 12px;border-right:1px solid var(--line)}
+.avhead>div:last-child,.row>*:last-child{border-right:0}
+.avhead{background:var(--tint);border-bottom:1px solid var(--rule);font-family:var(--sans);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.avhead>div:last-child{text-align:right}
+.row{border-bottom:1px solid var(--line);transition:opacity .35s,background .2s}
+.row:last-child{border-bottom:0}
+.row:focus-within{background:var(--accent-soft)}
+body.typing .row:not(:focus-within){opacity:.42}
+.num{font-size:.75em;color:var(--faint);padding-top:13px!important;font-variant-numeric:tabular-nums}
+.row:focus-within .num{color:var(--accent)}
+.cell{font-size:.97em;line-height:1.62;min-height:calc(1.62em + 20px)}
+.cell.v{font-size:.87em;color:var(--muted)}
+.side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.dur{font-size:.75em;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:3px}
+.addrow{margin-top:12px;height:38px;width:100%;border-radius:6px;color:var(--muted);font-family:var(--sans);font-size:13px;display:flex;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--rule)}
+.addrow:hover{color:var(--fg);border-color:var(--muted)}
+kbd{font-family:var(--mono);font-size:11px;padding:1px 5px;border:1px solid var(--line);border-radius:4px;color:var(--faint)}
+
+/* Libre */
+.free{margin-top:26px;outline:none;line-height:1.7;min-height:600px;overflow-wrap:break-word}
+.free:empty::before{content:attr(data-ph);color:var(--faint)}
+.free h1{font-size:1.45em;font-weight:600;line-height:1.3;margin:1.3em 0 .45em}
+.free h2{font-size:1.15em;font-weight:600;margin:1.2em 0 .35em}
+.free p{margin:0 0 .85em}
+.free blockquote{margin:0 0 .85em;padding:.1em 0 .1em 1em;border-left:3px solid var(--rule);color:var(--muted);font-size:.92em;font-style:italic}
+.free ul,.free ol{margin:0 0 .85em;padding-left:1.6em}
+.free li{margin:.2em 0}
+.free b,.free strong{font-weight:600}
+
+@media (max-width:820px){
+  .doc,.doc.av{padding:36px 22px 64px;min-height:70vh}
+  .crumb,.hide-sm{display:none!important}
+  .titlebar .spacer-sm{flex:1}
+}
+@media (max-width:720px){
+  .avhead{display:none}
+  .row{grid-template-columns:2rem minmax(0,1fr)}
+  .row>*{border-right:0;padding:6px 10px}
+  .row .num{grid-row:1/4;border-right:1px solid var(--line)!important}
+  .row .cell.v,.row .cell.n,.row .side{grid-column:2}
+  .row .side{flex-direction:row;padding-bottom:10px}
+  .cell.v{padding-top:12px}
+  .zoom input{display:none}
+}
+
+/* ---------- cajón ---------- */
+.scrim{position:fixed;inset:0;z-index:30;background:var(--overlay);opacity:0;pointer-events:none;transition:opacity .25s}
+.drawer{position:fixed;z-index:31;top:0;bottom:0;left:0;width:min(340px,88vw);background:var(--raise);box-shadow:var(--shadow);
+  transform:translateX(-102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;
+  padding:calc(12px + env(safe-area-inset-top,0px)) 0 calc(10px + env(safe-area-inset-bottom,0px)) env(safe-area-inset-left,0px)}
+body.drawer-open .drawer{transform:none}
+body.drawer-open .scrim{opacity:1;pointer-events:auto}
+.dhead{display:flex;align-items:center;gap:8px;padding:4px 14px 10px}
+.brand{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:-.01em;flex:1}
+.brand i{font-style:normal;color:var(--accent)}
+.dtabs{padding:0 14px}
+.dtabs .seg{display:flex}
+.dtabs .seg button{flex:1;height:30px;font-size:13px}
+.search{margin:10px 14px 6px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--bg);padding:0 11px;outline:none;font-size:13px}
+.search:focus{border-color:var(--faint)}
+.dlist{flex:1;overflow-y:auto;padding:4px 8px 12px}
+.item{display:block;width:100%;text-align:left;padding:9px 10px;border-radius:8px}
+.item:hover{background:var(--hover)}
+.item[aria-current="true"]{background:var(--accent-soft)}
+.item .t{font-size:13.5px;font-weight:500;color:var(--fg);line-height:1.35;display:flex;gap:8px;align-items:baseline}
+.item .t span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.item .s{font-size:11.5px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.pend{width:6px;height:6px;border-radius:50%;background:var(--warn);flex:none;transform:translateY(-1px)}
+.cat{margin-top:6px}
+.cathead{width:100%;display:flex;align-items:center;gap:8px;padding:9px 10px 5px;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.cathead .c{margin-left:auto;font-variant-numeric:tabular-nums;letter-spacing:0}
+.cathead svg{width:11px;height:11px;transition:transform .2s}
+.cat.closed .cathead svg{transform:rotate(-90deg)}
+.cat.closed .ideas{display:none}
+.idea{display:flex;gap:10px;align-items:flex-start;padding:7px 10px;border-radius:8px}
+.idea:hover{background:var(--hover)}
+.st{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--faint);flex:none;margin-top:2px;position:relative}
+.st[data-st="guion"]{border-color:var(--accent);background:conic-gradient(var(--accent) 0 50%,transparent 0)}
+.st[data-st="listo"]{border-color:var(--ok);background:var(--ok)}
+.st[data-st="listo"]::after{content:"";position:absolute;left:4px;top:1.5px;width:3px;height:6px;border:solid var(--raise);border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+.ibody{flex:1;min-width:0;text-align:left}
+.ibody .t{font-size:13px;line-height:1.4;color:var(--fg)}
+.idetail{display:none;margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.idea.open .idetail{display:block}
+.iact{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{height:26px;padding:0 10px;border-radius:13px;border:1px solid var(--line);font-size:12px;color:var(--fg);background:var(--bg)}
+.chip:hover{border-color:var(--faint)}
+.chip.pri{background:var(--accent);border-color:var(--accent);color:var(--raise)}
+.dfoot{display:flex;gap:6px;padding:8px 14px 0;border-top:1px solid var(--line)}
+.btn{height:34px;padding:0 13px;border-radius:8px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--bg)}
+.btn:hover{border-color:var(--faint)}
+.btn.pri{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.btn.pri:hover{opacity:.9}
+.btn.dang{color:var(--danger)}
+.btn svg{width:15px;height:15px}
+.empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:13px;line-height:1.55;font-family:var(--sans)}
+
+/* ---------- menús, modales, toasts ---------- */
+.menu{position:fixed;z-index:40;min-width:230px;background:var(--raise);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:5px}
+.menu button{display:flex;width:100%;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:13px;text-align:left}
+.menu button:hover{background:var(--hover)}
+.menu button.dang{color:var(--danger)}
+.menu button kbd{margin-left:auto}
+.menu svg{width:15px;height:15px;color:var(--muted)}
+.menu hr{border:0;border-top:1px solid var(--line);margin:5px 4px}
+.modal-wrap{position:fixed;inset:0;z-index:50;background:var(--overlay);display:grid;place-items:center;padding:16px var(--gut-r) 16px var(--gut-l)}
+.modal{width:min(480px,100%);max-height:calc(100% - 20px);overflow-y:auto;background:var(--raise);border-radius:14px;box-shadow:var(--shadow);padding:22px}
+.modal h2{margin:0 0 4px;font-family:var(--mono);font-size:17px;font-weight:600}
+.modal .sub{margin:0 0 16px;color:var(--muted);font-size:13px;line-height:1.5}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:12px;font-weight:500;color:var(--muted)}
+.inp{height:38px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:0 11px;outline:none;font-size:14px;width:100%}
+textarea.inp{height:auto;min-height:70px;padding:9px 11px;resize:vertical;line-height:1.5}
+.inp:focus{border-color:var(--accent)}
+.mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick button{border:1px solid var(--line);border-radius:10px;padding:12px;text-align:left;background:var(--bg)}
+.pick button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pick b{display:block;font-size:13.5px;font-weight:600;margin-bottom:3px}
+.pick span{font-size:12px;color:var(--muted);line-height:1.4}
+details.guide{margin-top:6px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+details.guide summary{cursor:pointer;font-size:13px;font-weight:500}
+details.guide ol{margin:10px 0 2px;padding-left:20px;font-size:12.5px;line-height:1.6;color:var(--fg)}
+details.guide li{margin-bottom:6px}
+.mono{font-family:var(--mono);font-size:12px;background:var(--hover);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+input.mono{font-size:13px;padding:0 11px}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin:6px 0 0}
+.acct{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
+.acct .avatar{width:32px;height:32px}
+.acct div{min-width:0;flex:1;font-size:13px}
+.acct small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.toasts{position:fixed;z-index:60;left:50%;transform:translateX(-50%);bottom:calc(46px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;align-items:center;width:max-content;max-width:calc(100% - 32px)}
+.toast{background:var(--fg);color:var(--bg);font-size:13px;padding:9px 14px;border-radius:9px;box-shadow:var(--shadow);display:flex;gap:14px;align-items:center}
+.toast button{color:var(--bg);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+</style>
+</head>
+<body>
+
+<header class="topbar chrome" id="topbar">
+  <div class="titlebar">
+    <button class="ib" id="btnDrawer" title="Guiones e ideas (Ctrl+\)" aria-label="Abrir guiones e ideas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+    <button class="ib txt" id="btnFile" aria-haspopup="menu">Archivo</button>
+    <div class="crumb" id="crumb"></div>
+    <div class="spacer-sm"></div>
+    <div class="seg" role="group" aria-label="Formato del guion" id="modeSeg">
+      <button data-mode="av" aria-pressed="true" title="Tabla de dos columnas: visual y narración">A/V</button>
+      <button data-mode="free" aria-pressed="false" title="Documento de texto libre">Libre</button>
+    </div>
+    <button class="sync" id="sync" data-s="local"><span class="dot"></span><span id="syncTxt" class="hide-sm">Solo local</span></button>
+    <button class="ib" id="btnTheme" title="Tema" aria-label="Cambiar tema"></button>
+    <button class="ib" id="btnAcct" title="Cuenta y ajustes" aria-label="Cuenta y ajustes"></button>
+  </div>
+  <div class="ribbon" id="ribbon" role="toolbar" aria-label="Herramientas">
+    <div class="grp">
+      <button class="tb" data-cmd="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+      <button class="tb" data-cmd="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <select class="tsel" id="selFont" aria-label="Fuente del documento" title="Fuente del documento">
+        <option value="mono">IBM Plex Mono</option><option value="sans">IBM Plex Sans</option><option value="serif">Literata</option><option value="courier">Courier Prime</option>
+      </select>
+      <select class="tsel" id="selSize" aria-label="Tamaño de letra" title="Tamaño de letra del documento">
+        <option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="16">16</option>
+      </select>
+    </div>
+    <div class="sep"></div>
+    <!-- herramientas de texto libre -->
+    <div class="grp" data-for="free">
+      <select class="tsel" id="selStyle" aria-label="Estilo de párrafo" title="Estilo de párrafo">
+        <option value="P">Normal</option><option value="H1">Título 1</option><option value="H2">Título 2</option><option value="BLOCKQUOTE">Nota visual</option>
+      </select>
+    </div>
+    <div class="sep" data-for="free"></div>
+    <div class="grp" data-for="free">
+      <button class="tb" data-cmd="bold" title="Negrita (Ctrl+B)" aria-label="Negrita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/></svg></button>
+      <button class="tb" data-cmd="italic" title="Cursiva (Ctrl+I)" aria-label="Cursiva"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M14 5h-4M14 19h-4M14 5l-4 14"/><path d="M15 5h3M6 19h3"/></svg></button>
+      <button class="tb" data-cmd="underline" title="Subrayado (Ctrl+U)" aria-label="Subrayado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M7 4v7a5 5 0 0 0 10 0V4M5 20h14"/></svg></button>
+      <button class="tb" data-cmd="strikeThrough" title="Tachado" aria-label="Tachado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 12h16M16.5 7.5C16 5.6 14.3 4.5 12 4.5c-2.6 0-4.5 1.3-4.5 3.3 0 1.4.9 2.3 2.4 2.9M8 16.5c.5 2 2.3 3 4.4 3 2.7 0 4.6-1.4 4.6-3.5 0-.6-.1-1.1-.4-1.5"/></svg></button>
+    </div>
+    <div class="sep" data-for="free"></div>
+    <div class="grp" data-for="free">
+      <button class="tb" data-cmd="justifyLeft" title="Alinear a la izquierda" aria-label="Alinear a la izquierda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 10h10M4 14h16M4 18h10"/></svg></button>
+      <button class="tb" data-cmd="justifyCenter" title="Centrar" aria-label="Centrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M7 10h10M4 14h16M7 18h10"/></svg></button>
+      <button class="tb" data-cmd="justifyRight" title="Alinear a la derecha" aria-label="Alinear a la derecha"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M10 10h10M4 14h16M10 18h10"/></svg></button>
+      <button class="tb" data-cmd="justifyFull" title="Justificar" aria-label="Justificar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg></button>
+    </div>
+    <div class="sep" data-for="free"></div>
+    <div class="grp" data-for="free">
+      <button class="tb" data-cmd="insertUnorderedList" title="Viñetas" aria-label="Viñetas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/></svg></button>
+      <button class="tb" data-cmd="insertOrderedList" title="Numeración" aria-label="Numeración"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 4.5h1.5V9M3.8 14.2c.3-.6.9-.9 1.5-.9.8 0 1.3.5 1.3 1.1 0 1-2.8 2.2-2.8 3.6h2.9" stroke-width="1.4"/></svg></button>
+      <button class="tb" data-cmd="removeFormat" title="Borrar formato" aria-label="Borrar formato"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5h12M12 5l-3 14M15 15l5 5M20 15l-5 5"/></svg></button>
+    </div>
+    <!-- herramientas de tabla A/V -->
+    <div class="grp" data-for="av">
+      <button class="tb" data-cmd="rowAbove" title="Insertar escena arriba"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="12" width="18" height="8" rx="1.5"/><path d="M12 3v6M9 6h6"/></svg><span class="lbl hide-sm">Arriba</span></button>
+      <button class="tb" data-cmd="rowBelow" title="Insertar escena abajo (Ctrl+Enter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="8" rx="1.5"/><path d="M12 15v6M9 18h6"/></svg><span class="lbl hide-sm">Abajo</span></button>
+    </div>
+    <div class="sep" data-for="av"></div>
+    <div class="grp" data-for="av">
+      <button class="tb" data-cmd="rowUp" title="Subir escena (Alt+↑)" aria-label="Subir escena"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+      <button class="tb" data-cmd="rowDown" title="Bajar escena (Alt+↓)" aria-label="Bajar escena"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+      <button class="tb" data-cmd="rowDel" title="Eliminar escena"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg><span class="lbl hide-sm">Eliminar escena</span></button>
+    </div>
+    <div class="spacer"></div>
+    <button class="tb" id="btnFocus" aria-pressed="false" title="Modo enfoque: esconde las barras mientras escribes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/></svg><span class="lbl hide-sm">Enfoque</span></button>
+  </div>
+</header>
+
+<main class="stage" id="stage"><div class="doc" id="doc"></div></main>
+
+<footer class="statusbar chrome">
+  <span><b id="stWords">0</b> palabras</span>
+  <span>≈ <b id="stDur">0:00</b> min de video</span>
+  <span class="hide-sm" id="stSaved">Guardado</span>
+  <div class="zoom">
+    <button id="zOut" aria-label="Alejar" title="Alejar">−</button>
+    <input type="range" id="zRange" min="50" max="200" step="10" value="100" aria-label="Zoom">
+    <button id="zIn" aria-label="Acercar" title="Acercar">+</button>
+    <button class="pct" id="zPct" title="Restablecer a 100%" style="width:auto">100%</button>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Guiones e ideas">
+  <div class="dhead">
+    <div class="brand">guionero<i>_</i></div>
+    <button class="ib" id="btnCloseDrawer" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="dtabs"><div class="seg" role="tablist" id="tabSeg">
+    <button data-tab="scripts" aria-pressed="true">Guiones</button>
+    <button data-tab="ideas" aria-pressed="false">Banco de ideas</button>
+  </div></div>
+  <input class="search" id="search" type="search" placeholder="Buscar…" aria-label="Buscar">
+  <div class="dlist" id="dlist"></div>
+  <div class="dfoot">
+    <button class="btn pri" id="btnNew"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span id="btnNewTxt">Nuevo guion</span></button>
+    <button class="btn" id="btnSettings" style="margin-left:auto" aria-label="Ajustes" title="Cuenta y ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+</aside>
+<input type="file" id="fileIn" accept=".guion,.json,application/json" hidden>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+/* ================= utilidades ================= */
+const $=(s,r=document)=>r.querySelector(s);
+const uid=()=>{try{if(crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'g'+Date.now().toString(36)+Math.random().toString(36).slice(2,9)};
+const now=()=>Date.now();
+function h(tag,attrs,...kids){const el=document.createElement(tag);if(attrs)for(const k in attrs){const v=attrs[k];if(v==null||v===false)continue;if(k==='class')el.className=v;else if(k==='text')el.textContent=v;else if(k==='html')el.innerHTML=v;else if(k.startsWith('on'))el.addEventListener(k.slice(2),v);else el.setAttribute(k,v===true?'':v)}for(const c of kids.flat()){if(c==null||c===false)continue;el.append(c.nodeType?c:document.createTextNode(c))}return el}
+const ICON={
+ chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
+ sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+ moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>',
+ auto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>',
+ new:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>',
+ pdf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
+ dl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+ ul:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></svg>',
+ open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>',
+ copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+ trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+ check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',
+ cloud:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/></svg>',
+ user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'
+};
+const FONTS={
+  mono:{label:'IBM Plex Mono',css:"'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace",pdf:'courier'},
+  sans:{label:'IBM Plex Sans',css:"'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif",pdf:'helvetica'},
+  serif:{label:'Literata',css:"'Literata',Georgia,'Times New Roman',serif",pdf:'times'},
+  courier:{label:'Courier Prime',css:"'Courier Prime','Courier New',Courier,monospace",pdf:'courier'}};
+function countWords(s){return ((s||'').match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu)||[]).length}
+function fmtDur(sec){sec=Math.round(sec);const m=Math.floor(sec/60),s=sec%60;return m+':'+String(s).padStart(2,'0')}
+function ago(t){if(!t)return'';const d=(now()-t)/1000;if(d<60)return'ahora';if(d<3600)return'hace '+Math.floor(d/60)+' min';if(d<86400)return'hace '+Math.floor(d/3600)+' h';return new Date(t).toLocaleDateString('es-MX',{day:'numeric',month:'short'})}
+function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+function fileSafe(s){return (s||'Sin título').replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,' ').trim().slice(0,80)||'Sin título'}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c])}
+const TAGMAP={P:'p',DIV:'p',H1:'h1',H2:'h2',H3:'h2',B:'b',STRONG:'b',I:'i',EM:'i',U:'u',S:'s',STRIKE:'s',DEL:'s',UL:'ul',OL:'ol',LI:'li',BLOCKQUOTE:'blockquote',BR:'br'};
+const ALIGN={center:1,right:1,justify:1};
+function sanitize(html){
+  const d=new DOMParser().parseFromString('<div>'+(html||'')+'</div>','text/html');const out=document.createElement('div');
+  (function walk(from,to){for(const n of from.childNodes){if(n.nodeType===3){to.append(n.nodeValue)}else if(n.nodeType===1){const t=TAGMAP[n.tagName];
+    if(t){const el=document.createElement(t);const a=(n.style&&n.style.textAlign)||n.getAttribute('align');if(a&&ALIGN[a]&&/^(p|h1|h2|li|blockquote)$/.test(t))el.style.textAlign=a;to.append(el);walk(n,el)}
+    else if(!/^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|svg|SVG)$/.test(n.tagName)){
+      const st=n.style||{};let tgt=to;   // conservar negritas/cursivas que el navegador mete como <span style>
+      if(st.fontWeight&&(st.fontWeight==='bold'||+st.fontWeight>=600)){const b=document.createElement('b');tgt.append(b);tgt=b}
+      if(st.fontStyle==='italic'){const i=document.createElement('i');tgt.append(i);tgt=i}
+      walk(n,tgt)}}}})(d.body.firstChild,out);
+  return out.innerHTML;
+}
+
+/* ================= datos ================= */
+const LS_KEY='guionero.v1';
+const SEED_IDEAS=[{"cat": "Cosmos, ciencia y espacio", "title": "El futuro está entre las estrellas", "desc": "Por qué la exploración espacial no es un lujo, sino una necesidad de especie."}, {"cat": "Cosmos, ciencia y espacio", "title": "No llegaremos a otras estrellas", "desc": "Video conciencia. Las barreras físicas, temporales y biológicas que nos condenan a morir en casa."}, {"cat": "Cosmos, ciencia y espacio", "title": "Todo empezó con el Big Bang", "desc": "El origen del universo como el mayor misterio sin resolver. Qué sabemos, qué suponemos, qué jamás sabremos."}, {"cat": "Cosmos, ciencia y espacio", "title": "Qué había antes del Big Bang", "desc": "Exploración del \"antes\" cuando el tiempo no existía. Física teórica, cosmología y los límites del lenguaje."}, {"cat": "Cosmos, ciencia y espacio", "title": "El universo no existe (y tú tampoco)", "desc": "Límites de la realidad, luz primordial, cuasi-realidades y la nada absoluta inestable. ¿Qué tan real es lo real?"}, {"cat": "Cosmos, ciencia y espacio", "title": "Las teorías de la relatividad explicadas en su totalidad", "desc": "Relatividad especial y general desde cero, con sus implicaciones más perturbadoras para el día a día."}, {"cat": "Cosmos, ciencia y espacio", "title": "Por qué podemos hacer ciencia", "desc": "Por qué el universo es comprensible. Las matemáticas como idioma universal y el milagro de que todo tenga orden."}, {"cat": "Cosmos, ciencia y espacio", "title": "El límite del conocimiento, el límite de la imaginación", "desc": "Hay preguntas que nunca tendrán respuesta. ¿Dónde termina la ciencia y empieza la especulación?"}, {"cat": "Cosmos, ciencia y espacio", "title": "ODLAU — Our Destiny Lies Above Us", "desc": "Video manifiesto. La exploración espacial como destino inevitable y poético de la humanidad."}, {"cat": "Cosmos, ciencia y espacio", "title": "Algún día voy a trabajar en la NASA", "desc": "Video manifiesto personal. Declaración de intención, sueño y propósito."}, {"cat": "Cosmos, ciencia y espacio", "title": "Holocausto nuclear", "desc": "La amenaza atómica hoy. Por qué sigue siendo el fin más probable y cercano que ignoramos colectivamente."}, {"cat": "Realidad, existencia y filosofía", "title": "Las capas de la realidad", "desc": "Cómo cualquier realidad puede (o no) existir. Física cuántica, filosofía y percepción como constructores de lo \"real\"."}, {"cat": "Realidad, existencia y filosofía", "title": "Qué es la realidad", "desc": "Desde la caverna de Platón hasta la simulación de Musk. Un recorrido por las mejores respuestas que tenemos."}, {"cat": "Realidad, existencia y filosofía", "title": "Lo que no existe", "desc": "Reflexión sobre el vacío, la ausencia y las cosas que solo existen porque las nombramos."}, {"cat": "Realidad, existencia y filosofía", "title": "Más allá", "desc": "¿Y si hay más allá? Explorar los límites de la realidad y lo que podría existir fuera de ellos."}, {"cat": "Realidad, existencia y filosofía", "title": "Hay que imaginarse a Sísifo feliz", "desc": "El absurdismo de Camus aplicado a la vida moderna. Encontrar sentido en la repetición y el esfuerzo."}, {"cat": "Realidad, existencia y filosofía", "title": "Nihilismo altruista", "desc": "Un nihilismo que no destruye sino que libera. Si nada importa por sí solo, podemos elegir que todo importe."}, {"cat": "Realidad, existencia y filosofía", "title": "El gran propósito (¿por qué?)", "desc": "La búsqueda humana de significado. Por qué necesitamos una razón para existir y qué pasa cuando no la encontramos."}, {"cat": "Dios, religión y espiritualidad", "title": "Dios existe", "desc": "Los mejores argumentos filosóficos y científicos a favor. No un sermón, sino un análisis honesto e incómodo."}, {"cat": "Dios, religión y espiritualidad", "title": "Creación divina de Dios", "desc": "El diseño del universo como evidencia o trampa mental. Fine-tuning, causalidad y el problema del origen."}, {"cat": "Dios, religión y espiritualidad", "title": "El ateísmo no es científico", "desc": "Por qué afirmar que Dios no existe es tan dogmático como afirmar que sí. La ciencia no puede responder eso."}, {"cat": "Dios, religión y espiritualidad", "title": "La ciencia es tu nueva religión", "desc": "Por qué una sociedad científica es esencial, pero dogmatizar la ciencia es el peor error que podemos cometer."}, {"cat": "Dios, religión y espiritualidad", "title": "Neo-Espiritualismo", "desc": "Una espiritualidad sin dogmas, sin dioses literales. Asombro, conexión y sentido en un mundo secular."}, {"cat": "Humanidad, sociedad y especie", "title": "El humano es humano por naturaleza", "desc": "Análisis del lado más atroz del Homo sapiens. La violencia, el poder y la crueldad no son bugs, son features. (Fusionar con: \"Hay gente que solo quiere ver el mundo arder\")"}, {"cat": "Humanidad, sociedad y especie", "title": "Hay gente que solo quiere ver el mundo arder", "desc": "Ver arriba ↑"}, {"cat": "Humanidad, sociedad y especie", "title": "El Homo sapiens", "desc": "Retrato completo de nuestra especie. Lo que somos, lo que hemos hecho, lo que podríamos llegar a ser."}, {"cat": "Humanidad, sociedad y especie", "title": "Madurez e inmadurez", "desc": "La falta de criterio, valores y pensamiento crítico en la sociedad actual. Por qué crecemos físicamente pero no mentalmente."}, {"cat": "Humanidad, sociedad y especie", "title": "Neo-oscurantismo", "desc": "La ignorancia organizada en la era de la información. Nunca tuvimos más acceso al conocimiento y nunca fuimos más ignorantes. (19/03/2025)"}, {"cat": "Humanidad, sociedad y especie", "title": "Mundo de extraños", "desc": "La humanidad colonizó cada rincón dejando sin espacio a los demás seres vivos. Sentirse ajeno en un mundo que ya no te pertenece."}, {"cat": "Humanidad, sociedad y especie", "title": "El mundo se cae a pedazos", "desc": "Concientización global. Un mapa de las crisis simultáneas que enfrentamos y por qué nadie parece verlas juntas."}, {"cat": "Humanidad, sociedad y especie", "title": "Estamos sentenciados como especie", "desc": "Las razones objetivas por las que nuestra extinción es probable. No como catastrofismo, sino como llamado de atención urgente."}, {"cat": "Humanidad, sociedad y especie", "title": "Extinguirnos no es la respuesta", "desc": "Contraparte del anterior. Por qué vale la pena luchar por la especie a pesar de todo lo que sabemos."}, {"cat": "Humanidad, sociedad y especie", "title": "Los que pueden", "desc": "Los \"guardianes de la tierra\". Quiénes tienen el poder y la responsabilidad de cambiar el rumbo. (19/03/2025)"}, {"cat": "Humanidad, sociedad y especie", "title": "Poner de rodillas al mundo", "desc": "[Idea en desarrollo — 13/03/2025] Posible ángulo: qué haría falta para sacudir la conciencia colectiva."}, {"cat": "Humanidad, sociedad y especie", "title": "Que hueva ser humano", "desc": "Reflexión honesta y sin filtros sobre la carga de ser consciente, mortal y vulnerable en este mundo."}, {"cat": "Muerte, legado y propósito", "title": "¿Cómo quieres ser recordado?", "desc": "Video sobre la muerte y el legado. Qué dejamos atrás y si eso importa cuando ya no estemos para verlo."}, {"cat": "Muerte, legado y propósito", "title": "Hay vida después de la muerte", "desc": "La hipótesis de la simulación y la civilización posthumana que podría resucitar digitalmente a todos los seres vivos que existieron."}, {"cat": "Muerte, legado y propósito", "title": "El suicidio no está tan mal", "desc": "⚠️ Tema sensible — máximo cuidado. Por qué es la última opción. Video conciencia sobre el dolor, el sentido y las razones para seguir."}, {"cat": "Muerte, legado y propósito", "title": "Buscando casa", "desc": "Todos los humanos buscamos ser felices. La complejidad y el precio de ser humano explicados con honestidad y empatía."}, {"cat": "Muerte, legado y propósito", "title": "La vida no debería ser tan difícil", "desc": "Por qué la modernidad prometió facilidad y entregó ansiedad. Reflexión sobre el diseño roto de nuestra sociedad."}, {"cat": "Inteligencia artificial", "title": "La IA es el mejor invento de la humanidad o el último", "desc": "El dilema completo: la IA como cúspide del ingenio humano y como posible firma de nuestra extinción."}, {"cat": "Inteligencia artificial", "title": "La IA no es nuestro fin (aún)", "desc": "Por qué el apocalipsis por IA está sobreestimado hoy, pero los riesgos reales son más sutiles y cercanos."}, {"cat": "Inteligencia artificial", "title": "No hay aliens, los creamos", "desc": "La IA como la primera inteligencia no biológica. Somos los primeros \"dioses\" que crean vida sintiente."}, {"cat": "Inteligencia artificial", "title": "Una máquina me hizo llorar", "desc": "Cómo la IA ha llegado a expresar algo que parece emoción sin sentirla. Qué dice eso de nosotros. (02/03/2025)"}, {"cat": "Inteligencia artificial", "title": "FinPredictus [provisional]", "desc": "Documental de una mente abstracta. [Idea en desarrollo] (06/03/2025)"}, {"cat": "Ciencia, biología y naturaleza", "title": "La evolución no existe {miniatura: al menos no como te la enseñaron}", "desc": "El neo-darwinismo y la teoría evolutiva actual. La evolución es mucho más extraña y fascinante de lo que aprendiste en el colegio."}, {"cat": "Ciencia, biología y naturaleza", "title": "Un día comenzó a llover plástico", "desc": "Los microplásticos y la vida microbiana enfrentando nuestros errores. Un documental de horror sin monstruos de ficción."}, {"cat": "Ciencia, biología y naturaleza", "title": "También los animales se drogan", "desc": "Comportamientos de alteración de conciencia en el reino animal. Qué dice eso sobre la naturaleza de la mente. (11/03/2025)"}, {"cat": "Ciencia, biología y naturaleza", "title": "La música le habla a una parte primitiva de nuestros cerebros", "desc": "La neurociencia detrás de por qué la música nos afecta tan profundo. Ritmo, emoción y evolución."}, {"cat": "Mente, talento y psicología", "title": "Si eres un genio, probablemente estás loco", "desc": "Psicoanálisis de los grandes genios de la historia. La línea delgada entre brillantez y desequilibrio mental."}, {"cat": "Mente, talento y psicología", "title": "Algunos nacen para brillar", "desc": "La predisposición genética al talento. ¿Naces genio o te haces? La ciencia y el debate. (19/03/2025)"}, {"cat": "Mente, talento y psicología", "title": "Cómo descargar información a tu cerebro", "desc": "Por qué leer es la habilidad más poderosa y subestimada del siglo XXI. Técnicas y mentalidad lectora."}, {"cat": "Mente, talento y psicología", "title": "Camarofobia", "desc": "La diferencia entre cómo te ves y cómo te ven los demás. Percepción, autoimagen y redes sociales."}, {"cat": "Mente, talento y psicología", "title": "Extraño sentir miedo", "desc": "Los miedos de la infancia vs los miedos de la vida adulta. Cómo cambia lo que nos aterra y qué dice de nuestra madurez. (21/03/2025)"}, {"cat": "Mente, talento y psicología", "title": "El físico sí importa", "desc": "La realidad incómoda del atractivo físico y su impacto en oportunidades, relaciones y autoestima."}, {"cat": "Mente, talento y psicología", "title": "Somos seres increíbles (potencial pseudo forzado)", "desc": "El discurso del potencial humano puesto bajo la lupa. ¿Motivación real o placebo colectivo?"}, {"cat": "Moral, ética y belleza", "title": "Moralidad objetiva", "desc": "Por qué una civilización que alcanza el espacio debe alcanzar la paz. Y por qué eso explica el silencio del cosmos (paradoja de Fermi + ética)."}, {"cat": "Moral, ética y belleza", "title": "Todo es hermoso", "desc": "Reflexión sobre la magia que hay en todo. Aprender un poco de todo para ver la belleza en cada detalle de la realidad."}, {"cat": "Moral, ética y belleza", "title": "El amor es una enfermedad", "desc": "Bioquímica, obsesión y apego. Por qué el amor romántico tiene todos los síntomas de un trastorno y por qué lo buscamos igual."}, {"cat": "Moral, ética y belleza", "title": "El mundo tiene aguas muy profundas", "desc": "Secretos terrenales, conspiraciones reales y capas de la realidad que existen debajo de lo visible."}, {"cat": "Cultura, internet y sociedad", "title": "E-positive", "desc": "El fenómeno de positividad en internet, la agrupación de minorías y el \"hopecore\" como respuesta cultural al caos del mundo."}, {"cat": "Cultura, internet y sociedad", "title": "Tank Man", "desc": "Cómo un simple ser humano puede marcar la historia. El poder del individuo frente al sistema."}, {"cat": "Cultura, internet y sociedad", "title": "Las películas están basadas en la vida real", "desc": "Cómo el cine refleja, predice y moldea la realidad. Casos concretos donde la ficción se volvió profecía."}, {"cat": "Cultura, internet y sociedad", "title": "Nostalgia (Minecraft vibes)", "desc": "La nostalgia como fenómeno psicológico y cultural. Por qué ciertos estéticos digitales nos transportan a un tiempo más simple."}, {"cat": "Cultura, internet y sociedad", "title": "Cómo salir de la matrix", "desc": "Despertar del piloto automático social. Cuestionar las narrativas que moldean nuestra vida sin que lo notemos."}, {"cat": "Cultura, internet y sociedad", "title": "Somos seres tan complejos", "desc": "La paradoja humana: somos lo más simple y lo más extraordinario al mismo tiempo."}, {"cat": "Posibles series", "title": "¿Por qué? (Serie)", "desc": "Cada episodio responde un \"¿por qué?\" profundo. Ciencia, filosofía y existencia en formato corto y denso."}, {"cat": "Posibles series", "title": "All We Know", "desc": "Todo lo que sabemos como especie, condensado en episodios temáticos. Un mapa del conocimiento humano."}, {"cat": "Posibles series", "title": "Existe algo más", "desc": "Serie de exploración. Cada capítulo expande los límites de lo que consideramos posible o real."}, {"cat": "Frases y formatos cortos", "title": "\"Hoy haré algo, aunque sea pequeño, porque cada acto me acerca a mi sueño.\"", "desc": "Posible intro, outro o frase recurrente del canal."}, {"cat": "Frases y formatos cortos", "title": "Existe algo más", "desc": "Tagline o concepto visual recurrente."}];
+const SCOPES='https://www.googleapis.com/auth/drive.file openid email profile';
+function newScript(o={}){const t=now();return{id:uid(),title:o.title||'',logline:o.logline||'',mode:o.mode||'av',rows:o.rows||[{id:uid(),visual:'',narr:''}],html:o.html||'',ideaId:o.ideaId||null,font:o.font||S_defaultFont(),size:o.size||12,createdAt:t,updatedAt:t,driveId:null,syncedAt:0,dirty:true}}
+function S_defaultFont(){return (typeof S!=='undefined'&&S&&S.settings&&S.settings.font)||'mono'}
+function seed(){
+  const t=now();
+  const ideas=SEED_IDEAS.map(i=>({id:uid(),cat:i.cat,title:i.title,desc:i.desc,status:'idea',scriptId:null,updatedAt:t}));
+  const ex=newScript({title:ideas[0]?ideas[0].title:'Mi primer guion',logline:'Ejemplo de cómo se ve un guion A/V. Edítalo o bórralo cuando quieras.',mode:'av',ideaId:ideas[0]&&ideas[0].id,font:'mono',rows:[
+    {id:uid(),visual:'Negro total. Un punto de luz aparece al centro y crece despacio.',narr:'Toda la historia humana ha pasado en un solo planeta.'},
+    {id:uid(),visual:'Zoom out: la Tierra completa girando. Texto en pantalla: "1 de 1".',narr:'Cada guerra, cada canción, cada persona que has querido. Todo aquí. Y si algo le pasa a este lugar, no hay plan B.'},
+    {id:uid(),visual:'Personaje de espaldas mirando el cielo nocturno.',narr:'Por eso la exploración espacial no es un lujo. Es el seguro de vida de nuestra especie.'}]});
+  if(ideas[0]){ideas[0].status='guion';ideas[0].scriptId=ex.id}
+  return{v:1,settings:{clientId:'',wpm:150,theme:'auto',focus:false,zoom:100,font:'mono'},scripts:{[ex.id]:ex},ideas,ideasDirty:true,currentId:ex.id,pendingDeletes:[],drive:{folderId:null,ideasFileId:null,ideasSyncedAt:0,email:null,name:null,lastSync:0},ui:{tab:'scripts',closed:{}}};
+}
+function load(){
+  try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);if(d&&d.v===1){d.settings=Object.assign({clientId:'',wpm:150,theme:'auto',focus:false,zoom:100,font:'mono'},d.settings);d.ui=Object.assign({tab:'scripts',closed:{}},d.ui);d.drive=Object.assign({folderId:null,ideasFileId:null,ideasSyncedAt:0,email:null,name:null},d.drive);d.pendingDeletes=d.pendingDeletes||[];
+    for(const s of Object.values(d.scripts||{})){if(!FONTS[s.font])s.font='mono';if(!s.size)s.size=12}return d}}}catch(e){}
+  return seed();
+}
+let S=load();
+function saveNow(){try{localStorage.setItem(LS_KEY,JSON.stringify(S));setSaved('Guardado')}catch(e){setSaved('No se pudo guardar en este navegador')}}
+const saveSoon=debounce(saveNow,350);
+function setSaved(t){const el=$('#stSaved');if(el)el.textContent=t}
+function cur(){return S.scripts[S.currentId]||null}
+function touch(sc){sc.updatedAt=now();sc.dirty=true;setSaved('Guardando…');saveSoon();Drive.schedule();refreshListSoon()}
+function ideaById(id){return S.ideas.find(i=>i.id===id&&!i.deleted)}
+function touchIdeas(idea){if(idea)idea.updatedAt=now();S.ideasDirty=true;saveSoon();Drive.schedule()}
+function scriptWords(sc){if(!sc)return 0;if(sc.mode==='av')return sc.rows.reduce((a,r)=>a+countWords(r.narr),0);const d=document.createElement('div');d.innerHTML=sc.html||'';return countWords(d.textContent)}
+const secs=w=>w/(S.settings.wpm||150)*60;
+
+/* ================= tema, zoom, enfoque ================= */
+function applyTheme(){const t=S.settings.theme;if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t);
+  $('#btnTheme').innerHTML=ICON[t==='dark'?'moon':t==='light'?'sun':'auto'];$('#btnTheme').title='Tema: '+({auto:'automático',light:'claro',dark:'oscuro'})[t]}
+$('#btnTheme').addEventListener('click',()=>{const o=['auto','light','dark'];S.settings.theme=o[(o.indexOf(S.settings.theme)+1)%3];applyTheme();saveSoon();toast('Tema '+({auto:'automático',light:'claro',dark:'oscuro'})[S.settings.theme])});
+function applyZoom(){const z=Math.max(50,Math.min(200,S.settings.zoom||100));$('#doc').style.zoom=z/100;$('#zRange').value=z;$('#zPct').textContent=z+'%'}
+$('#zRange').addEventListener('input',e=>{S.settings.zoom=+e.target.value;applyZoom();saveSoon()});
+$('#zIn').addEventListener('click',()=>{S.settings.zoom=Math.min(200,(S.settings.zoom||100)+10);applyZoom();saveSoon()});
+$('#zOut').addEventListener('click',()=>{S.settings.zoom=Math.max(50,(S.settings.zoom||100)-10);applyZoom();saveSoon()});
+$('#zPct').addEventListener('click',()=>{S.settings.zoom=100;applyZoom();saveSoon()});
+function applyFocus(){$('#btnFocus').setAttribute('aria-pressed',String(!!S.settings.focus));if(!S.settings.focus)document.body.classList.remove('typing')}
+$('#btnFocus').addEventListener('click',()=>{S.settings.focus=!S.settings.focus;applyFocus();saveSoon();toast(S.settings.focus?'Modo enfoque: las barras se esconden mientras escribes. Mueve el mouse o presiona Esc para verlas.':'Modo enfoque apagado')});
+
+/* ================= editor ================= */
+const doc=$('#doc');
+function grow(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px'}
+function growAll(){doc.querySelectorAll('textarea').forEach(grow)}
+window.addEventListener('resize',debounce(growAll,120));
+let curRowId=null,curField='n',freeEl=null,savedRange=null;
+
+function applyDocFont(sc){doc.style.setProperty('--doc-font',FONTS[sc.font].css);doc.style.setProperty('--doc-size',(sc.size*4/3).toFixed(2)+'px')}
+function renderEditor(){
+  const sc=cur();doc.innerHTML='';freeEl=null;savedRange=null;curRowId=null;
+  if(!sc){doc.className='doc';doc.append(h('div',{class:'empty',style:'padding-top:12vh'},h('p',{text:'No hay ningún guion abierto.'}),h('button',{class:'btn pri',onclick:()=>openNewModal()},'Crear un guion')));updateStats();renderChrome();return}
+  doc.className='doc'+(sc.mode==='av'?' av':'');applyDocFont(sc);
+  const title=h('textarea',{class:'ta title',rows:1,placeholder:'Título del video',id:'f-title','aria-label':'Título'});title.value=sc.title;
+  title.addEventListener('input',()=>{sc.title=title.value;grow(title);touch(sc);renderCrumb()});
+  title.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#f-log').focus()}});
+  const log=h('textarea',{class:'ta logline',rows:1,placeholder:'Premisa: de qué trata en una o dos líneas',id:'f-log','aria-label':'Premisa'});log.value=sc.logline;
+  log.addEventListener('input',()=>{sc.logline=log.value;grow(log);touch(sc)});
+  doc.append(title,log,h('div',{class:'meta',id:'meta'}));
+  if(sc.mode==='av')renderAV(sc);else renderFree(sc);
+  requestAnimationFrame(growAll);updateStats();renderChrome();
+}
+function renderMeta(){const sc=cur(),m=$('#meta');if(!sc||!m)return;const w=scriptWords(sc);m.innerHTML='';const idea=sc.ideaId&&ideaById(sc.ideaId);
+  m.append(h('span',{text:sc.mode==='av'?'Guion A/V':'Texto libre'}));
+  if(sc.mode==='av')m.append(h('span',{text:sc.rows.length+(sc.rows.length===1?' escena':' escenas')}));
+  m.append(h('span',{text:'≈ '+fmtDur(secs(w))+' min'}));
+  if(idea)m.append(h('span',{text:idea.status==='listo'?'Idea: lista':'Idea: en guion'}));
+}
+function renderAV(sc){
+  const t=h('div',{class:'avtable'},h('div',{class:'avhead','aria-hidden':'true'},h('div',{text:'#'}),h('div',{text:'Visual'}),h('div',{text:'Narración'}),h('div',{text:'Tiempo'})),h('div',{id:'rows'}));
+  doc.append(t);fillRows(sc);
+  doc.append(h('button',{class:'addrow',onclick:()=>addRow(sc,sc.rows.length-1,true)},'+ Nueva escena',h('kbd',{class:'hide-sm',text:'Ctrl + Enter'})));
+}
+function fillRows(sc){const list=$('#rows');list.innerHTML='';sc.rows.forEach((r,i)=>list.append(rowEl(sc,r,i)))}
+function rowEl(sc,r,i){
+  const v=h('textarea',{class:'ta cell v',rows:1,placeholder:'Qué se ve: plano, animación, texto en pantalla…','aria-label':'Visual escena '+(i+1),id:'v-'+r.id});v.value=r.visual;
+  const n=h('textarea',{class:'ta cell n',rows:1,placeholder:'Lo que dices…','aria-label':'Narración escena '+(i+1),id:'n-'+r.id});n.value=r.narr;
+  const dur=h('div',{class:'dur',text:fmtDur(secs(countWords(r.narr)))});
+  v.addEventListener('input',()=>{r.visual=v.value;grow(v);touch(sc)});
+  n.addEventListener('input',()=>{r.narr=n.value;grow(n);dur.textContent=fmtDur(secs(countWords(r.narr)));touch(sc);updateStats()});
+  const kd=e=>{const idx=sc.rows.indexOf(r);
+    if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();addRow(sc,idx,true,e.target.classList.contains('v')?'v':'n')}
+    else if(e.altKey&&e.key==='ArrowUp'){e.preventDefault();moveRow(sc,idx,-1)}
+    else if(e.altKey&&e.key==='ArrowDown'){e.preventDefault();moveRow(sc,idx,1)}
+    else if(e.key==='Backspace'&&!r.visual&&!r.narr&&sc.rows.length>1){e.preventDefault();delRow(sc,idx,true)}};
+  v.addEventListener('keydown',kd);n.addEventListener('keydown',kd);
+  return h('div',{class:'row','data-id':r.id},h('div',{class:'num',text:String(i+1).padStart(2,'0')}),v,n,h('div',{class:'side'},dur));
+}
+doc.addEventListener('focusin',e=>{const row=e.target.closest&&e.target.closest('.row');if(row){curRowId=row.dataset.id;curField=e.target.classList.contains('v')?'v':'n'}});
+function rerenderRows(sc,focusId,which){if(!$('#rows'))return;fillRows(sc);requestAnimationFrame(()=>{$('#rows').querySelectorAll('textarea').forEach(grow);if(focusId){const el=document.getElementById((which||curField||'n')+'-'+focusId);if(el){el.focus();el.selectionStart=el.selectionEnd=el.value.length}}});updateStats()}
+function addRow(sc,after,focus,which){const r={id:uid(),visual:'',narr:''};sc.rows.splice(after+1,0,r);touch(sc);rerenderRows(sc,focus?r.id:null,which||'v')}
+function moveRow(sc,idx,dir){const j=idx+dir;if(idx<0||j<0||j>=sc.rows.length)return;const [r]=sc.rows.splice(idx,1);sc.rows.splice(j,0,r);touch(sc);rerenderRows(sc,r.id)}
+function delRow(sc,idx,focusPrev){if(idx<0)return;const [r]=sc.rows.splice(idx,1);if(!sc.rows.length)sc.rows.push({id:uid(),visual:'',narr:''});touch(sc);const prev=sc.rows[Math.max(0,idx-1)];rerenderRows(sc,focusPrev?prev.id:null);
+  if(r.visual||r.narr)toast('Escena eliminada',{label:'Deshacer',fn:()=>{sc.rows.splice(idx,0,r);touch(sc);rerenderRows(sc,r.id)}})}
+
+function renderFree(sc){
+  freeEl=h('div',{class:'free',contenteditable:'true',spellcheck:'true','data-ph':'Empieza a escribir…','aria-label':'Texto del guion',id:'f-free'});
+  freeEl.innerHTML=sanitize(sc.html);if(!freeEl.textContent.trim()&&!freeEl.querySelector('li'))freeEl.innerHTML='';
+  freeEl.addEventListener('input',()=>{let html=freeEl.innerHTML;if(!freeEl.textContent.trim()&&!freeEl.querySelector('li,blockquote')){html='';if(/^(<br>|<p><br><\/p>)$/.test(freeEl.innerHTML))freeEl.innerHTML=''}sc.html=html;touch(sc);updateStatsSoon()});
+  freeEl.addEventListener('paste',e=>{const t=(e.clipboardData||window.clipboardData).getData('text/plain');if(t){e.preventDefault();document.execCommand('insertText',false,t)}});
+  doc.append(freeEl);
+  try{document.execCommand('defaultParagraphSeparator',false,'p')}catch(e){}
+}
+document.addEventListener('selectionchange',()=>{const s=getSelection();if(freeEl&&s.rangeCount&&freeEl.contains(s.anchorNode)){savedRange=s.getRangeAt(0).cloneRange();syncRibbon()}});
+function restoreSel(){if(!freeEl)return;freeEl.focus({preventScroll:true});if(savedRange){const s=getSelection();s.removeAllRanges();s.addRange(savedRange)}}
+function curBlock(){const s=getSelection();let n=s.anchorNode;while(n&&n!==freeEl){if(n.nodeType===1&&/^(H1|H2|P|BLOCKQUOTE)$/.test(n.tagName))return n.tagName;n=n.parentNode}return'P'}
+function syncRibbon(){if(!freeEl)return;$('#selStyle').value=curBlock();
+  for(const c of ['bold','italic','underline','strikeThrough','justifyLeft','justifyCenter','justifyRight','justifyFull','insertUnorderedList','insertOrderedList']){const b=$('[data-cmd="'+c+'"]');let on=false;try{on=document.queryCommandState(c)}catch(e){}if(b)b.setAttribute('aria-pressed',String(on))}}
+function freeChanged(){if(freeEl)freeEl.dispatchEvent(new Event('input'));syncRibbon()}
+
+/* ================= cinta de herramientas ================= */
+const ribbon=$('#ribbon');
+ribbon.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault()});
+ribbon.addEventListener('click',e=>{const b=e.target.closest('button[data-cmd]');if(!b)return;const cmd=b.dataset.cmd;const sc=cur();if(!sc)return;
+  if(cmd==='undo'||cmd==='redo'){if(sc.mode==='free')restoreSel();document.execCommand(cmd);if(sc.mode==='free')freeChanged();return}
+  if(sc.mode==='av'){const idx=curRowId?sc.rows.findIndex(r=>r.id===curRowId):sc.rows.length-1;
+    if(cmd==='rowAbove')addRow(sc,idx-1,true,'v');else if(cmd==='rowBelow')addRow(sc,idx,true,'v');
+    else if(cmd==='rowUp')moveRow(sc,idx,-1);else if(cmd==='rowDown')moveRow(sc,idx,1);
+    else if(cmd==='rowDel'){if(sc.rows.length===1&&!sc.rows[0].visual&&!sc.rows[0].narr)return;delRow(sc,idx,true)}
+    return}
+  restoreSel();document.execCommand(cmd,false,null);freeChanged()});
+$('#selStyle').addEventListener('change',e=>{restoreSel();document.execCommand('formatBlock',false,'<'+e.target.value.toLowerCase()+'>');freeChanged()});
+$('#selFont').addEventListener('change',e=>{const sc=cur();if(!sc)return;sc.font=e.target.value;S.settings.font=sc.font;applyDocFont(sc);touch(sc);requestAnimationFrame(growAll);refocus()});
+$('#selSize').addEventListener('change',e=>{const sc=cur();if(!sc)return;sc.size=+e.target.value;applyDocFont(sc);touch(sc);requestAnimationFrame(growAll);refocus()});
+function refocus(){const sc=cur();if(!sc)return;if(sc.mode==='free')restoreSel();else if(curRowId){const el=document.getElementById(curField+'-'+curRowId);el&&el.focus()}}
+
+function updateStats(){const sc=cur();const w=scriptWords(sc);$('#stWords').textContent=w.toLocaleString('es-MX');$('#stDur').textContent=fmtDur(secs(w));renderMeta()}
+const updateStatsSoon=debounce(updateStats,250);
+
+/* ================= cambio de modo ================= */
+function avToHtml(sc){return sc.rows.filter(r=>r.visual.trim()||r.narr.trim()).map(r=>(r.visual.trim()?'<blockquote>'+esc(r.visual).replace(/\n/g,'<br>')+'</blockquote>':'')+(r.narr.trim()?r.narr.split(/\n{2,}/).map(p=>'<p>'+esc(p).replace(/\n/g,'<br>')+'</p>').join(''):'')).join('')}
+function textOf(el){if(el.tagName==='UL'||el.tagName==='OL')return [...el.children].map((li,k)=>(el.tagName==='UL'?'• ':(k+1)+'. ')+li.textContent).join('\n');const d=document.createElement('div');d.innerHTML=el.innerHTML.replace(/<br\s*\/?>/gi,'\n');return d.textContent}
+function htmlToRows(html){const d=document.createElement('div');d.innerHTML=sanitize(html);const rows=[];let pendV='';
+  for(const el of d.children){const t=textOf(el);if(!t.trim())continue;if(el.tagName==='BLOCKQUOTE'){pendV=pendV?pendV+'\n'+t:t}else{rows.push({id:uid(),visual:pendV,narr:t});pendV=''}}
+  if(pendV)rows.push({id:uid(),visual:pendV,narr:''});if(!rows.length)rows.push({id:uid(),visual:'',narr:''});return rows}
+function setMode(m){const sc=cur();if(!sc||sc.mode===m)return;const snap={mode:sc.mode,rows:JSON.parse(JSON.stringify(sc.rows)),html:sc.html};
+  if(m==='free')sc.html=avToHtml(sc);else sc.rows=htmlToRows(sc.html);
+  sc.mode=m;touch(sc);renderEditor();
+  toast(m==='free'?'Convertido a texto libre':'Convertido a tabla A/V',{label:'Deshacer',fn:()=>{Object.assign(sc,snap);touch(sc);renderEditor()}});
+}
+$('#modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.mode)});
+
+/* ================= barras ================= */
+function renderCrumb(){const sc=cur();const c=$('#crumb');c.innerHTML='';if(sc)c.append(h('b',{text:sc.title||'Sin título'}),S.drive.folderId&&Drive.token?'  ·  Drive › Guiones':'')}
+function renderChrome(){const sc=cur();renderCrumb();
+  $('#modeSeg').hidden=!sc;$('#modeSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(!!sc&&sc.mode===b.dataset.mode)));
+  const mode=sc?sc.mode:'none';ribbon.querySelectorAll('[data-for]').forEach(el=>el.hidden=el.dataset.for!==mode);
+  $('#selFont').disabled=$('#selSize').disabled=!sc;ribbon.querySelectorAll('.tb[data-cmd]').forEach(b=>b.disabled=!sc);
+  if(sc){$('#selFont').value=sc.font;$('#selSize').value=String(sc.size)}
+  const a=$('#btnAcct');a.innerHTML=S.drive.email?'<span class="avatar">'+esc((S.drive.name||S.drive.email)[0].toUpperCase())+'</span>':ICON.user;
+}
+
+/* ================= teclado y modo enfoque ================= */
+const noHover=matchMedia('(hover: none)').matches;
+let mvX=null,mvY=null;
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){document.body.classList.remove('typing');closeMenu();if(document.body.classList.contains('drawer-open'))closeDrawer();return}
+  const mod=e.ctrlKey||e.metaKey;
+  if(mod&&e.key==='\\'){e.preventDefault();toggleDrawer();return}
+  if(mod&&(e.key==='s'||e.key==='S')){e.preventDefault();saveNow();Drive.syncNow(true);return}
+  if(mod&&(e.key==='p'||e.key==='P')){e.preventDefault();const sc=cur();sc&&exportPDF(sc);return}
+  if(mod&&e.altKey&&(e.key==='n'||e.key==='N')){e.preventDefault();openNewModal();return}
+  if(!S.settings.focus||noHover)return;
+  if(e.target.closest&&e.target.closest('#doc')&&!mod&&!e.altKey&&(e.key.length===1||e.key==='Enter'||e.key==='Backspace')){document.body.classList.add('typing');mvX=null}
+});
+document.addEventListener('mousemove',e=>{if(!document.body.classList.contains('typing'))return;if(mvX===null){mvX=e.clientX;mvY=e.clientY;return}if(Math.abs(e.clientX-mvX)+Math.abs(e.clientY-mvY)>14)document.body.classList.remove('typing')});
+
+/* ================= cajón ================= */
+function openDrawer(){document.body.classList.add('drawer-open');document.body.classList.remove('typing');renderDrawer()}
+function closeDrawer(){document.body.classList.remove('drawer-open')}
+function toggleDrawer(){document.body.classList.contains('drawer-open')?closeDrawer():openDrawer()}
+$('#btnDrawer').addEventListener('click',openDrawer);$('#btnCloseDrawer').addEventListener('click',closeDrawer);$('#scrim').addEventListener('click',closeDrawer);
+$('#tabSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.ui.tab=b.dataset.tab;saveSoon();renderDrawer()});
+$('#search').addEventListener('input',debounce(()=>renderDrawer(),120));
+$('#btnNew').addEventListener('click',()=>S.ui.tab==='ideas'?openIdeaModal():openNewModal());
+$('#btnSettings').addEventListener('click',openSettings);
+const refreshListSoon=debounce(()=>{if(document.body.classList.contains('drawer-open'))renderDrawer()},600);
+let openIdea=null;
+function renderDrawer(){
+  const tab=S.ui.tab;$('#tabSeg').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tab===tab)));
+  $('#btnNewTxt').textContent=tab==='ideas'?'Nueva idea':'Nuevo guion';
+  const q=$('#search').value.trim().toLowerCase();const L=$('#dlist');const keep=L.scrollTop;L.innerHTML='';
+  if(tab==='scripts'){
+    const list=Object.values(S.scripts).filter(s=>!q||(s.title+' '+s.logline).toLowerCase().includes(q)).sort((a,b)=>b.updatedAt-a.updatedAt);
+    if(!list.length)L.append(h('div',{class:'empty',text:q?'Nada coincide con tu búsqueda.':'Aún no tienes guiones. Crea uno o empieza desde el banco de ideas.'}));
+    for(const s of list){const w=scriptWords(s);
+      L.append(h('button',{class:'item','aria-current':String(s.id===S.currentId),onclick:()=>openScript(s.id)},
+        h('div',{class:'t'},h('span',{text:s.title||'Sin título'}),s.dirty&&Drive.token?h('i',{class:'pend',title:'Sin subir a Drive'}):null),
+        h('div',{class:'s',text:(s.mode==='av'?'A/V':'Libre')+' · ≈ '+fmtDur(secs(w))+' min · '+ago(s.updatedAt)})))}
+  }else{
+    const cats=[];const by={};for(const i of S.ideas){if(i.deleted)continue;if(!by[i.cat]){by[i.cat]=[];cats.push(i.cat)}by[i.cat].push(i)}
+    let any=false;
+    for(const c of cats){const items=by[c].filter(i=>!q||(i.title+' '+i.desc).toLowerCase().includes(q));if(!items.length)continue;any=true;
+      const done=by[c].filter(i=>i.status==='listo').length;const closed=!q&&S.ui.closed[c];
+      const wrap=h('div',{class:'cat'+(closed?' closed':'')});
+      wrap.append(h('button',{class:'cathead','aria-expanded':String(!closed),onclick:()=>{S.ui.closed[c]=!S.ui.closed[c];saveSoon();renderDrawer()},html:ICON.chev},h('span',{text:c}),h('span',{class:'c',text:done+'/'+by[c].length})));
+      const box=h('div',{class:'ideas'});
+      for(const i of items){const sc=i.scriptId&&S.scripts[i.scriptId];
+        const st=h('button',{class:'st','data-st':i.status,title:'Estado: '+({idea:'pendiente',guion:'en guion',listo:'listo'})[i.status]+' (toca para cambiar)','aria-label':'Cambiar estado'});
+        st.addEventListener('click',e=>{e.stopPropagation();const o=['idea','guion','listo'];i.status=o[(o.indexOf(i.status)+1)%3];touchIdeas(i);renderDrawer();if(cur()&&cur().ideaId===i.id)renderMeta()});
+        const acts=h('div',{class:'iact'});
+        if(sc)acts.append(h('button',{class:'chip pri',onclick:()=>openScript(sc.id)},'Abrir guion'));
+        else acts.append(h('button',{class:'chip pri',onclick:()=>scriptFromIdea(i,'av')},'Guion A/V'),h('button',{class:'chip',onclick:()=>scriptFromIdea(i,'free')},'Guion libre'));
+        acts.append(h('button',{class:'chip',onclick:()=>openIdeaModal(i)},'Editar'));
+        box.append(h('div',{class:'idea'+(openIdea===i.id?' open':'')},st,h('button',{class:'ibody',onclick:()=>{openIdea=openIdea===i.id?null:i.id;renderDrawer()}},h('div',{class:'t',text:i.title}),h('div',{class:'idetail'},i.desc||'Sin descripción.',acts))))}
+      wrap.append(box);L.append(wrap)}
+    if(!any)L.append(h('div',{class:'empty',text:q?'Ninguna idea coincide.':'Tu banco de ideas está vacío.'}));
+  }
+  L.scrollTop=keep;
+}
+function openScript(id){S.currentId=id;saveSoon();closeDrawer();renderEditor();$('#stage').scrollTop=0}
+function scriptFromIdea(i,mode){const sc=newScript({title:i.title,logline:i.desc,mode,ideaId:i.id});S.scripts[sc.id]=sc;i.scriptId=sc.id;if(i.status==='idea')i.status='guion';touchIdeas(i);touch(sc);openScript(sc.id);setTimeout(()=>{const f=mode==='av'?doc.querySelector('.cell.v'):freeEl;f&&f.focus()},60)}
+
+/* ================= menú Archivo ================= */
+let menuEl=null;
+function closeMenu(){if(menuEl){menuEl.remove();menuEl=null}}
+function showMenu(anchor,items){closeMenu();menuEl=h('div',{class:'menu',role:'menu'});
+  for(const it of items){if(it==='-'){menuEl.append(h('hr'));continue}const b=h('button',{role:'menuitem',class:it.danger?'dang':null,onclick:()=>{closeMenu();it.fn()},html:ICON[it.icon]||''},it.label);if(it.kbd)b.append(h('kbd',{text:it.kbd}));menuEl.append(b)}
+  document.body.append(menuEl);const r=anchor.getBoundingClientRect();const w=menuEl.offsetWidth;menuEl.style.top=(r.bottom+6)+'px';menuEl.style.left=Math.max(12,Math.min(window.innerWidth-w-12,r.left))+'px';
+  setTimeout(()=>document.addEventListener('click',onDocClick,{once:true}),0)}
+function onDocClick(e){if(menuEl&&!menuEl.contains(e.target))closeMenu();else if(menuEl)document.addEventListener('click',onDocClick,{once:true})}
+$('#btnFile').addEventListener('click',e=>{e.stopPropagation();if(menuEl){closeMenu();return}const sc=cur();const idea=sc&&sc.ideaId&&ideaById(sc.ideaId);
+  const items=[{label:'Nuevo guion',icon:'new',kbd:'Ctrl+Alt+N',fn:openNewModal},{label:'Abrir…',icon:'open',kbd:'Ctrl+\\',fn:()=>{S.ui.tab='scripts';openDrawer()}},{label:'Abrir archivo .guion',icon:'ul',fn:()=>$('#fileIn').click()}];
+  if(sc){items.push('-',{label:'Guardar en Drive ahora',icon:'cloud',kbd:'Ctrl+S',fn:()=>{saveNow();Drive.syncNow(true)}},{label:'Exportar PDF',icon:'pdf',kbd:'Ctrl+P',fn:()=>exportPDF(sc)},{label:'Descargar archivo .guion',icon:'dl',fn:()=>exportGuion(sc)},'-');
+    if(idea)items.push({label:idea.status==='listo'?'Marcar idea como en guion':'Marcar idea como lista',icon:'check',fn:()=>{idea.status=idea.status==='listo'?'guion':'listo';touchIdeas(idea);renderMeta();toast(idea.status==='listo'?'Idea marcada como lista':'Idea en guion')}});
+    items.push({label:'Duplicar guion',icon:'copy',fn:()=>{const c=JSON.parse(JSON.stringify(sc));Object.assign(c,{id:uid(),title:(sc.title||'Sin título')+' (copia)',driveId:null,syncedAt:0,createdAt:now(),ideaId:null});c.rows.forEach(r=>r.id=uid());S.scripts[c.id]=c;touch(c);openScript(c.id);toast('Guion duplicado')}},
+      {label:'Eliminar guion',icon:'trash',danger:true,fn:()=>confirmDelete(sc)})}
+  showMenu(e.currentTarget,items)});
+
+/* ================= modales ================= */
+let modalEl=null;
+function closeModal(){if(modalEl){modalEl.remove();modalEl=null}}
+function modal(build){closeModal();const m=h('div',{class:'modal',role:'dialog','aria-modal':'true'});modalEl=h('div',{class:'modal-wrap',onmousedown:e=>{if(e.target===modalEl)closeModal()}},m);build(m);document.body.append(modalEl);const f=m.querySelector('input,textarea,button.pri');f&&setTimeout(()=>f.focus(),30);
+  m.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closeModal()}})}
+function openNewModal(){let mode='av';modal(m=>{
+  const t=h('input',{class:'inp',id:'nm-title',placeholder:'Ej. No llegaremos a otras estrellas'});
+  const pick=h('div',{class:'pick'},
+    h('button',{'aria-pressed':'true','data-m':'av'},h('b',{text:'Tabla A/V'}),h('span',{text:'Dos columnas: lo que se ve y lo que narras.'})),
+    h('button',{'aria-pressed':'false','data-m':'free'},h('b',{text:'Documento libre'}),h('span',{text:'Hoja en blanco con títulos, listas y formato.'})));
+  pick.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;mode=b.dataset.m;pick.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))});
+  const go=()=>{const sc=newScript({title:t.value.trim(),mode});S.scripts[sc.id]=sc;touch(sc);closeModal();openScript(sc.id);setTimeout(()=>{const f=t.value.trim()?(mode==='av'?doc.querySelector('.cell.v'):freeEl):$('#f-title');f&&f.focus()},60)};
+  t.addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+  m.append(h('h2',{text:'Nuevo guion'}),h('p',{class:'sub',text:'Puedes cambiar de formato después; el texto se conserva.'}),
+    h('div',{class:'field'},h('label',{for:'nm-title',text:'Título'}),t),h('div',{class:'field'},h('label',{text:'Formato'}),pick),
+    h('div',{class:'mfoot'},h('button',{class:'btn',onclick:closeModal},'Cancelar'),h('button',{class:'btn pri',onclick:go},'Crear')))})}
+function openIdeaModal(idea){const isNew=!idea;const cats=[...new Set(S.ideas.filter(i=>!i.deleted).map(i=>i.cat))];modal(m=>{
+  const t=h('input',{class:'inp',id:'im-title',placeholder:'Título de la idea'});t.value=idea?idea.title:'';
+  const d=h('textarea',{class:'inp',id:'im-desc',placeholder:'De qué trata, qué ángulo quieres darle'});d.value=idea?idea.desc:'';
+  const dl=h('datalist',{id:'catlist'},cats.map(c=>h('option',{value:c})));
+  const c=h('input',{class:'inp',id:'im-cat',list:'catlist',placeholder:'Categoría'});c.value=idea?idea.cat:(cats[0]||'Sin categoría');
+  const go=()=>{if(!t.value.trim()){t.focus();return}const cat=c.value.trim()||'Sin categoría';
+    if(isNew){const i={id:uid(),cat,title:t.value.trim(),desc:d.value.trim(),status:'idea',scriptId:null,updatedAt:now()};S.ideas.push(i);openIdea=i.id;S.ui.closed[cat]=false;touchIdeas(i)}
+    else{Object.assign(idea,{title:t.value.trim(),desc:d.value.trim(),cat});touchIdeas(idea)}
+    closeModal();renderDrawer();toast(isNew?'Idea agregada':'Idea guardada')};
+  const foot=h('div',{class:'mfoot'});
+  if(!isNew)foot.append(h('button',{class:'btn dang',style:'margin-right:auto',onclick:()=>{idea.deleted=true;touchIdeas(idea);closeModal();renderDrawer();toast('Idea eliminada',{label:'Deshacer',fn:()=>{idea.deleted=false;touchIdeas(idea);renderDrawer()}})}},'Eliminar'));
+  foot.append(h('button',{class:'btn',onclick:closeModal},'Cancelar'),h('button',{class:'btn pri',onclick:go},isNew?'Agregar':'Guardar'));
+  m.append(h('h2',{text:isNew?'Nueva idea':'Editar idea'}),h('div',{class:'field',style:'margin-top:14px'},h('label',{for:'im-title',text:'Título'}),t),
+    h('div',{class:'field'},h('label',{for:'im-desc',text:'Descripción'}),d),h('div',{class:'field'},h('label',{for:'im-cat',text:'Categoría'}),c,dl),foot)})}
+function confirmDelete(sc){modal(m=>{m.append(h('h2',{text:'¿Eliminar este guion?'}),h('p',{class:'sub',text:'"'+(sc.title||'Sin título')+'" se borrará de este dispositivo'+(sc.driveId?' y se mandará a la papelera de tu Drive (ahí lo puedes recuperar 30 días).':'.')}),
+  h('div',{class:'mfoot'},h('button',{class:'btn',onclick:closeModal},'Cancelar'),h('button',{class:'btn pri',style:'background:var(--danger);border-color:var(--danger)',onclick:()=>{
+    if(sc.driveId)S.pendingDeletes.push(sc.driveId);const idea=sc.ideaId&&ideaById(sc.ideaId);if(idea){idea.scriptId=null;if(idea.status==='guion')idea.status='idea';touchIdeas(idea)}
+    delete S.scripts[sc.id];if(S.currentId===sc.id){const rest=Object.values(S.scripts).sort((a,b)=>b.updatedAt-a.updatedAt);S.currentId=rest[0]?rest[0].id:null}
+    saveNow();Drive.schedule();closeModal();renderEditor();toast('Guion eliminado')}},'Eliminar')))})}
+function openSettings(){closeDrawer();modal(m=>{
+  const cid=h('input',{class:'inp mono',id:'st-cid',placeholder:'123456-abc.apps.googleusercontent.com',spellcheck:'false',autocomplete:'off'});cid.value=S.settings.clientId;
+  const wpm=h('input',{class:'inp',id:'st-wpm',type:'number',min:'80',max:'260',step:'5'});wpm.value=S.settings.wpm;
+  const origin=location.origin&&location.origin!=='null'&&/github\.io|localhost|127\.0\.0\.1/.test(location.origin)?location.origin:'https://TU-USUARIO.github.io';
+  m.append(h('h2',{text:'Cuenta y ajustes'}),h('p',{class:'sub',text:'Tus guiones siempre se guardan en este dispositivo. Al conectar Google, también se suben a la carpeta "Guiones" de tu Drive.'}));
+  if(S.drive.email){m.append(h('div',{class:'acct'},h('span',{class:'avatar',text:(S.drive.name||S.drive.email)[0].toUpperCase()}),h('div',null,S.drive.name||'Cuenta de Google',h('small',{text:S.drive.email})),
+    Drive.token?h('button',{class:'btn',onclick:()=>{Drive.signOut();closeModal();toast('Sesión cerrada. Tus guiones siguen en este dispositivo.')}},'Cerrar sesión'):h('button',{class:'btn pri',onclick:()=>{Drive.signIn();closeModal()}},'Reconectar')))}
+  m.append(h('div',{class:'field'},h('label',{for:'st-cid',text:'Client ID de Google (solo se pega una vez)'}),cid),
+    h('details',{class:'guide'},h('summary',{text:'Cómo conseguir tu Client ID (gratis, ~10 min)'}),h('ol',{html:
+      '<li>Entra a <span class="mono">console.cloud.google.com</span> con tu Gmail personal y crea un proyecto nuevo (ej. "Guionero").</li>'+
+      '<li><b>APIs &amp; Services → Library</b>: busca <b>Google Drive API</b> y dale <b>Enable</b>.</li>'+
+      '<li><b>Google Auth Platform</b> (antes "OAuth consent screen"): llena nombre de la app y tu correo, elige <b>External</b>. En <b>Audience → Test users</b> agrega tu Gmail.</li>'+
+      '<li><b>Clients → Create client</b> → tipo <b>Web application</b>. En <b>Authorized JavaScript origins</b> pon exactamente:<br><span class="mono">'+esc(origin)+'</span></li>'+
+      '<li>Copia el <b>Client ID</b> que te da y pégalo arriba.</li>'+
+      '<li>Al conectar, Google dirá que la app no está verificada: es tuya, dale <b>Continue</b>.</li>'})),
+    h('p',{class:'note',text:'Usa tu Gmail personal; las cuentas de escuela suelen bloquear apps propias. La app solo puede ver los archivos que ella misma crea en tu Drive.'}),
+    h('div',{class:'field',style:'margin-top:16px'},h('label',{for:'st-wpm',text:'Velocidad de narración (palabras por minuto)'}),wpm,h('p',{class:'note',text:'150 es un ritmo normal de voz en off. Ajústalo si hablas más rápido o más lento.'})));
+  const save=()=>{S.settings.clientId=cid.value.trim();const w=parseInt(wpm.value,10);if(w>=80&&w<=260)S.settings.wpm=w;saveNow();updateStats();Drive.prepare()};
+  m.append(h('div',{class:'mfoot'},h('button',{class:'btn',onclick:()=>{save();closeModal()}},'Guardar'),
+    !Drive.token?h('button',{class:'btn pri',onclick:()=>{save();if(!S.settings.clientId){cid.focus();toast('Primero pega tu Client ID');return}closeModal();Drive.signIn()}},'Conectar con Google'):null))})}
+$('#btnAcct').addEventListener('click',()=>{if(!Drive.token&&S.settings.clientId&&S.drive.email)Drive.signIn();else openSettings()});
+$('#sync').addEventListener('click',()=>{const s=Drive.status;if(s==='local'||s==='unavailable')openSettings();else if(s==='expired')Drive.signIn();else Drive.syncNow(true)});
+
+/* ================= toasts ================= */
+function toast(msg,action){const t=h('div',{class:'toast'},h('span',{text:msg}));if(action)t.append(h('button',{onclick:()=>{action.fn();t.remove()}},action.label));$('#toasts').append(t);setTimeout(()=>t.remove(),action?6000:2800)}
+
+/* ================= archivo .guion ================= */
+function serialize(sc){return{format:'guionero',version:1,id:sc.id,title:sc.title,logline:sc.logline,mode:sc.mode,font:sc.font,size:sc.size,rows:sc.rows.map(r=>({id:r.id,visual:r.visual,narr:r.narr})),html:sc.html,ideaId:sc.ideaId,createdAt:sc.createdAt,updatedAt:sc.updatedAt}}
+function normalize(d){if(!d||d.format!=='guionero')throw new Error('Este archivo no es un guion de Guionero.');
+  return{id:String(d.id||uid()),title:String(d.title||''),logline:String(d.logline||''),mode:d.mode==='free'?'free':'av',font:FONTS[d.font]?d.font:'mono',size:[10,11,12,13,14,16].includes(+d.size)?+d.size:12,
+    rows:Array.isArray(d.rows)&&d.rows.length?d.rows.map(r=>({id:String(r.id||uid()),visual:String(r.visual||''),narr:String(r.narr||'')})):[{id:uid(),visual:'',narr:''}],
+    html:sanitize(String(d.html||'')),ideaId:d.ideaId||null,createdAt:+d.createdAt||now(),updatedAt:+d.updatedAt||now(),driveId:null,syncedAt:0,dirty:false}}
+function download(name,blob){const a=h('a',{href:URL.createObjectURL(blob),download:name});document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+function exportGuion(sc){download(fileSafe(sc.title)+'.guion',new Blob([JSON.stringify(serialize(sc),null,1)],{type:'application/json'}));toast('Archivo .guion descargado')}
+$('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const sc=normalize(JSON.parse(await f.text()));if(S.scripts[sc.id])sc.id=uid();sc.updatedAt=now();S.scripts[sc.id]=sc;touch(sc);openScript(sc.id);toast('Guion abierto: '+(sc.title||'Sin título'))}
+  catch(err){toast(err.message&&err.message.includes('Guionero')?err.message:'No se pudo leer el archivo. ¿Es un .guion?')}});
+
+/* ================= PDF ================= */
+const JSPDF='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+const AUTOTABLE='https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+function loadScript(src){return new Promise((res,rej)=>{const s=h('script',{src});s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar '+src));document.head.append(s)})}
+const CP1252='€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ';
+function pdfSafe(s){return String(s||'').replace(/\r/g,'').replace(/→/g,'->').replace(/←/g,'<-').replace(/\t/g,'  ').replace(/ /g,' ').replace(/[^\x00-\xFF]/g,c=>CP1252.includes(c)?c:'')}
+async function exportPDF(sc){
+  toast('Generando PDF…');
+  try{if(!(window.jspdf&&window.jspdf.jsPDF))await loadScript(JSPDF);if(!window.jspdf.jsPDF.API.autoTable)await loadScript(AUTOTABLE)}
+  catch(e){toast('Necesitas internet la primera vez para exportar PDF.');return}
+  const {jsPDF}=window.jspdf;const av=sc.mode==='av';const pdf=new jsPDF({unit:'pt',format:'letter',orientation:av?'landscape':'portrait'});
+  const F=FONTS[sc.font].pdf,PT=sc.size||12;
+  const W=pdf.internal.pageSize.getWidth(),H=pdf.internal.pageSize.getHeight(),M=av?54:72,CW=W-2*M;
+  const INK=[45,43,39],MUTE=[133,127,116],LINE=[222,218,208],RULE=[205,200,190],TINT=[243,241,235];
+  let y=M;
+  pdf.setTextColor(...INK);pdf.setFont(F,'bold');pdf.setFontSize(PT*1.6);
+  const tl=pdf.splitTextToSize(pdfSafe(sc.title||'Sin título'),CW);pdf.text(tl,M,y+PT*1.3);y+=tl.length*PT*1.95+4;
+  if(sc.logline.trim()){pdf.setFont(F,'italic');pdf.setFontSize(PT*.9);pdf.setTextColor(...MUTE);const ll=pdf.splitTextToSize(pdfSafe(sc.logline),CW);pdf.text(ll,M,y+PT*.8);y+=ll.length*PT*1.35+4}
+  const w=scriptWords(sc);const date=new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+  pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(...MUTE);
+  pdf.text(pdfSafe([(av?'GUION A/V':'TEXTO LIBRE'),av?sc.rows.length+' ESCENAS':null,w+' PALABRAS','DURACIÓN ESTIMADA '+fmtDur(secs(w)),date.toUpperCase()].filter(Boolean).join('   ·   ')),M,y+10);
+  y+=20;pdf.setDrawColor(...LINE);pdf.setLineWidth(.8);pdf.line(M,y,W-M,y);y+=16;
+  if(av){
+    pdf.autoTable({startY:y,margin:{left:M,right:M,top:M,bottom:M},theme:'grid',
+      head:[['#','VISUAL','NARRACIÓN','TIEMPO']],
+      body:sc.rows.filter(r=>r.visual.trim()||r.narr.trim()).map((r,i)=>[String(i+1).padStart(2,'0'),pdfSafe(r.visual),pdfSafe(r.narr),fmtDur(secs(countWords(r.narr)))]),
+      styles:{font:F,fontSize:PT*.88,textColor:INK,cellPadding:{top:7,bottom:8,left:7,right:7},valign:'top',lineColor:RULE,lineWidth:.5,overflow:'linebreak'},
+      headStyles:{font:'helvetica',fontStyle:'bold',fontSize:7.5,textColor:MUTE,fillColor:TINT},
+      columnStyles:{0:{cellWidth:30,textColor:MUTE,fontSize:PT*.72},1:{cellWidth:(CW-30-54)*.4,textColor:[100,95,87],fontSize:PT*.8,fontStyle:'italic'},2:{},3:{cellWidth:54,halign:'right',textColor:MUTE,fontSize:PT*.72}}});
+  }else drawRich(pdf,sc.html,{M,W,H,CW,INK,MUTE,LINE:RULE,y,F,PT});
+  const n=pdf.getNumberOfPages();
+  for(let p=1;p<=n;p++){pdf.setPage(p);pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor(...MUTE);
+    pdf.text(pdfSafe(sc.title||'Sin título').slice(0,80),M,H-28);pdf.text('Página '+p+' de '+n,W-M,H-28,{align:'right'})}
+  try{pdf.save(fileSafe(sc.title)+'.pdf');toast('PDF listo')}catch(e){toast('El navegador bloqueó la descarga.')}
+}
+function drawRich(pdf,html,o){
+  const root=document.createElement('div');root.innerHTML=sanitize(html);const blocks=[];
+  const runsOf=(node,st,out)=>{for(const c of node.childNodes){if(c.nodeType===3)out.push({t:c.nodeValue,b:st.b,i:st.i,u:st.u,s:st.s});else if(c.nodeType===1){const T=c.tagName;if(T==='BR')out.push({t:'\n'});else runsOf(c,{b:st.b||T==='B',i:st.i||T==='I',u:st.u||T==='U',s:st.s||T==='S'},out)}}return out};
+  const al=el=>(el.style&&el.style.textAlign)||'left';
+  for(const el of root.childNodes){if(el.nodeType===3){if(el.nodeValue.trim())blocks.push({type:'P',align:'left',runs:[{t:el.nodeValue}]});continue}
+    if(el.tagName==='UL'||el.tagName==='OL'){let k=1;for(const li of el.children)blocks.push({type:'LI',align:al(li),marker:el.tagName==='UL'?'•':(k++)+'.',runs:runsOf(li,{},[])});continue}
+    if(el.tagName==='BLOCKQUOTE'&&el.querySelector('p')){for(const p of el.children)blocks.push({type:'BLOCKQUOTE',align:al(p),runs:runsOf(p,{i:true},[])});continue}
+    blocks.push({type:el.tagName,align:al(el),runs:runsOf(el,el.tagName==='BLOCKQUOTE'?{i:true}:{},[])})}
+  const P=o.PT;
+  const ST={H1:{size:P*1.45,lh:P*1.9,b:true,before:P*1.1,after:P*.45,indent:0},H2:{size:P*1.15,lh:P*1.55,b:true,before:P*.9,after:P*.35,indent:0},P:{size:P,lh:P*1.55,before:0,after:P*.8,indent:0},
+    LI:{size:P,lh:P*1.55,before:0,after:P*.3,indent:P*1.5},BLOCKQUOTE:{size:P*.92,lh:P*1.45,before:0,after:P*.8,indent:P*1.2,color:o.MUTE}};
+  let y=o.y;const bottom=o.H-o.M;
+  const style=(b,i)=>b&&i?'bolditalic':b?'bold':i?'italic':'normal';
+  const measure=t=>{pdf.setFont(o.F,style(t.b,t.i));return pdf.getTextWidth(t.sp?' ':t.w)};
+  for(const bl of blocks){const s=ST[bl.type]||ST.P;if(!bl.runs.some(r=>r.t&&r.t.trim()))continue;
+    y+=s.before;const x0=o.M+s.indent,width=o.CW-s.indent;pdf.setFontSize(s.size);const color=s.color||o.INK;pdf.setTextColor(...color);
+    const toks=[];for(const r of bl.runs){if(r.t==='\n'){toks.push({br:1});continue}const b=r.b||s.b,i=r.i;for(const part of pdfSafe(r.t).split(/(\n| +)/)){if(!part)continue;if(part==='\n')toks.push({br:1});else if(/^ +$/.test(part))toks.push({sp:1,b,i,u:r.u,s:r.s});else toks.push({w:part,b,i,u:r.u,s:r.s})}}
+    const lines=[];let line=[],lw=0;
+    const flush=hard=>{while(line.length&&line[line.length-1].sp){lw-=line[line.length-1].wd;line.pop()}lines.push({toks:line,w:lw,hard});line=[];lw=0};
+    for(const t of toks){if(t.br){flush(true);continue}if(t.sp){if(line.length){const sw=measure(t);line.push({...t,wd:sw});lw+=sw}continue}
+      let wd=measure(t);
+      if(lw+wd>width&&line.length)flush(false);
+      while(wd>width){let k=t.w.length;while(k>1&&measure({...t,w:t.w.slice(0,k)})>width)k--;const piece={...t,w:t.w.slice(0,k)};piece.wd=measure(piece);line.push(piece);lw+=piece.wd;flush(false);t.w=t.w.slice(k);wd=measure(t)}
+      line.push({...t,wd});lw+=wd}
+    if(line.length)flush(true);
+    lines.forEach((ln,li)=>{if(y+s.lh>bottom){pdf.addPage();y=o.M}
+      const base=y+s.size;let x=x0,extra=0;
+      if(bl.align==='center')x=x0+(width-ln.w)/2;else if(bl.align==='right')x=x0+width-ln.w;
+      else if(bl.align==='justify'&&!ln.hard&&li<lines.length-1){const n=ln.toks.filter(t=>t.sp).length;if(n)extra=(width-ln.w)/n}
+      if(li===0&&bl.type==='LI'){pdf.setFont(o.F,'normal');pdf.text(bl.marker,o.M+P*.2,base)}
+      if(bl.type==='BLOCKQUOTE'){pdf.setDrawColor(...o.LINE);pdf.setLineWidth(1.8);pdf.line(o.M+2,y+2,o.M+2,y+s.lh+1)}
+      for(const t of ln.toks){if(t.sp){x+=t.wd+extra;continue}pdf.setFont(o.F,style(t.b,t.i));pdf.text(t.w,x,base);
+        if(t.u||t.s){pdf.setDrawColor(...color);pdf.setLineWidth(Math.max(.5,s.size*.055));if(t.u)pdf.line(x,base+s.size*.14,x+t.wd,base+s.size*.14);if(t.s)pdf.line(x,base-s.size*.3,x+t.wd,base-s.size*.3)}
+        x+=t.wd}
+      y+=s.lh});
+    y+=s.after}
+}
+
+/* ================= Google Drive ================= */
+const API='https://www.googleapis.com/drive/v3',UP='https://www.googleapis.com/upload/drive/v3';
+const SYNC_LABEL={local:'Solo local',unavailable:'Solo local',syncing:'Guardando en Drive…',synced:'En Drive',offline:'Sin internet',expired:'Reconectar',error:'Error al subir'};
+const Drive={token:null,tokenExp:0,client:null,status:'local',syncing:false,timer:null,gis:null,
+  setStatus(s,detail){this.status=s;const el=$('#sync');el.dataset.s=s;$('#syncTxt').textContent=SYNC_LABEL[s];el.title=detail||({local:'Tus guiones están solo en este dispositivo. Toca para conectar Google Drive.',synced:'Todo está en tu carpeta "Guiones" de Drive. Toca para sincronizar ahora.',offline:'Sin conexión. Se sube solo cuando vuelva el internet.',expired:'Tu sesión de Google expiró. Toca para reconectar.',error:'No se pudo subir. Toca para reintentar.',syncing:'Subiendo cambios…',unavailable:'El inicio de sesión de Google no está disponible aquí.'})[s]||'';renderCrumb()},
+  loadGis(){if(this.gis)return this.gis;this.gis=new Promise(res=>{if(window.google&&google.accounts&&google.accounts.oauth2){res(true);return}
+    const s=h('script',{src:'https://accounts.google.com/gsi/client',async:true});let done=false;const fin=v=>{if(!done){done=true;res(v)}};
+    s.onload=()=>fin(!!(window.google&&google.accounts&&google.accounts.oauth2));s.onerror=()=>fin(false);setTimeout(()=>fin(!!(window.google&&google.accounts)),9000);document.head.append(s)});
+    this.gis.then(ok=>{if(!ok)this.gis=null});return this.gis},
+  async prepare(){if(!S.settings.clientId)return false;const ok=await this.loadGis();if(!ok){this.setStatus('unavailable');return false}
+    try{this.client=google.accounts.oauth2.initTokenClient({client_id:S.settings.clientId,scope:SCOPES,callback:r=>this.onToken(r),error_callback:e=>this.onTokenError(e)});return true}catch(e){toast('El Client ID no es válido.');return false}},
+  signIn(){if(!S.settings.clientId){openSettings();return}
+    if(this.client){try{this.client.requestAccessToken({prompt:S.drive.email?'':'consent',hint:S.drive.email||undefined})}catch(e){toast('No se pudo abrir el inicio de sesión de Google.')}return}
+    this.prepare().then(ok=>{if(ok)toast('Listo, toca "Conectar" otra vez para abrir Google.');else if(this.status==='unavailable')toast('El inicio de sesión de Google no carga aquí. Usa tu página publicada.')})},
+  async onToken(r){if(r.error){this.onTokenError(r);return}this.token=r.access_token;this.tokenExp=now()+((+r.expires_in||3600)-60)*1000;
+    try{const u=await this.api('GET','https://www.googleapis.com/oauth2/v3/userinfo');const changed=S.drive.email&&u.email&&S.drive.email!==u.email;
+      if(changed){S.drive.folderId=null;S.drive.ideasFileId=null;S.drive.ideasSyncedAt=0;for(const s of Object.values(S.scripts)){s.driveId=null;s.syncedAt=0;s.dirty=true}S.ideasDirty=true;S.pendingDeletes=[]}
+      S.drive.email=u.email||S.drive.email;S.drive.name=u.name||u.given_name||null;saveNow();renderChrome();toast('Conectado como '+(S.drive.email||'tu cuenta'))}catch(e){}
+    this.syncNow()},
+  onTokenError(e){if(e&&(e.type==='popup_closed'||e.error==='access_denied')){toast('No se conectó a Google.');return}if(e&&e.type==='popup_failed_to_open'){toast('El navegador bloqueó la ventana de Google. Permite ventanas emergentes.');return}toast('Google no permitió el acceso. Revisa tu Client ID y que tu correo esté en Test users.')},
+  signOut(){try{if(this.token)google.accounts.oauth2.revoke(this.token,()=>{})}catch(e){}this.token=null;S.drive.email=null;S.drive.name=null;saveNow();this.setStatus('local');renderChrome()},
+  async api(method,url,body,headers){if(!this.token||now()>this.tokenExp){this.token=null;this.setStatus('expired');const e=new Error('expired');e.code='expired';throw e}
+    const res=await fetch(url,{method,headers:Object.assign({Authorization:'Bearer '+this.token},body&&typeof body==='string'&&!headers?{'Content-Type':'application/json'}:{},headers||{}),body});
+    if(res.status===401){this.token=null;this.setStatus('expired');const e=new Error('expired');e.code='expired';throw e}
+    if(!res.ok){const e=new Error('HTTP '+res.status);e.status=res.status;try{e.detail=await res.text()}catch(_){}throw e}
+    const ct=res.headers.get('content-type')||'';return ct.includes('json')?res.json():res.text()},
+  async ensureFolder(){
+    if(S.drive.folderId){try{const f=await this.api('GET',API+'/files/'+S.drive.folderId+'?fields=id,trashed');if(!f.trashed)return f.id}catch(e){if(e.code==='expired')throw e}}
+    const q=encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='Guiones' and trashed=false and 'root' in parents");
+    const r=await this.api('GET',API+'/files?q='+q+'&fields=files(id)&spaces=drive');
+    let id=r.files&&r.files[0]&&r.files[0].id;
+    if(!id){const f=await this.api('POST',API+'/files?fields=id',JSON.stringify({name:'Guiones',mimeType:'application/vnd.google-apps.folder'}));id=f.id}
+    S.drive.folderId=id;return id},
+  upload(meta,content,fileId){const b='guionero'+Math.random().toString(36).slice(2);
+    const body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(meta)+'\r\n--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+content+'\r\n--'+b+'--';
+    return this.api(fileId?'PATCH':'POST',UP+'/files'+(fileId?'/'+fileId:'')+'?uploadType=multipart&fields=id,modifiedTime',body,{'Content-Type':'multipart/related; boundary='+b})},
+  schedule(){clearTimeout(this.timer);if(this.token)this.timer=setTimeout(()=>this.syncNow(),2500)},
+  async syncNow(manual){
+    if(!this.token){if(manual&&S.settings.clientId)this.signIn();else if(manual)toast('Guardado en este dispositivo. Conecta Google para subirlo a Drive.');return}
+    if(!navigator.onLine){this.setStatus('offline');return}
+    if(this.syncing){this.again=true;return}
+    this.syncing=true;this.setStatus('syncing');let changedCurrent=false,changedAny=false;
+    try{
+      const folder=await this.ensureFolder();
+      for(const fid of [...S.pendingDeletes]){try{await this.api('PATCH',API+'/files/'+fid,JSON.stringify({trashed:true}))}catch(e){if(e.code==='expired')throw e;if(e.status!==404&&e.status!==403)throw e}S.pendingDeletes=S.pendingDeletes.filter(x=>x!==fid)}
+      const files=[];let pt='';do{const r=await this.api('GET',API+'/files?q='+encodeURIComponent("'"+folder+"' in parents and trashed=false")+'&fields=nextPageToken,files(id,name,modifiedTime,appProperties)&pageSize=200&spaces=drive'+(pt?'&pageToken='+pt:''));files.push(...(r.files||[]));pt=r.nextPageToken}while(pt);
+      const remote=files.filter(f=>f.appProperties&&f.appProperties.guionero==='script');const ids=new Set(remote.map(f=>f.id));
+      for(const f of remote){const rmt=Date.parse(f.modifiedTime);const sid=f.appProperties.sid;
+        let local=Object.values(S.scripts).find(s=>s.driveId===f.id)||(S.scripts[sid]&&!S.scripts[sid].driveId?S.scripts[sid]:null);
+        if(!local){const d=await this.api('GET',API+'/files/'+f.id+'?alt=media');const s=normalize(typeof d==='string'?JSON.parse(d):d);if(S.scripts[s.id])s.id=uid();Object.assign(s,{driveId:f.id,syncedAt:rmt,dirty:false});S.scripts[s.id]=s;changedAny=true;continue}
+        if(!local.driveId){local.driveId=f.id;local.dirty=true;continue}
+        if(rmt>local.syncedAt+1500){const d=await this.api('GET',API+'/files/'+f.id+'?alt=media');const s=normalize(typeof d==='string'?JSON.parse(d):d);
+          if(local.dirty){const copy=Object.assign(JSON.parse(JSON.stringify(local)),{id:uid(),title:(local.title||'Sin título')+' (versión de este dispositivo)',driveId:null,syncedAt:0,dirty:true,ideaId:null});S.scripts[copy.id]=copy;toast('Hubo cambios en dos lugares a la vez; guardé ambas versiones.')}
+          Object.assign(s,{id:local.id,driveId:f.id,syncedAt:rmt,dirty:false});S.scripts[local.id]=s;changedAny=true;if(local.id===S.currentId)changedCurrent=true}}
+      for(const s of Object.values(S.scripts)){if(s.driveId&&!ids.has(s.driveId)){if(s.dirty)s.driveId=null;else{delete S.scripts[s.id];changedAny=true;if(s.id===S.currentId){changedCurrent=true;const rest=Object.values(S.scripts).sort((a,b)=>b.updatedAt-a.updatedAt);S.currentId=rest[0]?rest[0].id:null}}}}
+      for(const s of Object.values(S.scripts)){if(!s.dirty)continue;const stamp=s.updatedAt;const name=fileSafe(s.title)+'.guion';
+        const meta=s.driveId?{name}:{name,parents:[folder],mimeType:'application/json',appProperties:{guionero:'script',sid:s.id}};
+        const r=await this.upload(meta,JSON.stringify(serialize(s)),s.driveId);s.driveId=r.id;s.syncedAt=Date.parse(r.modifiedTime);if(s.updatedAt===stamp)s.dirty=false}
+      await this.syncIdeas(files,folder);
+      S.drive.lastSync=now();saveNow();this.setStatus('synced');
+      if(changedCurrent){const a=document.activeElement;if(!(a&&a.closest&&a.closest('#doc')))renderEditor()}
+      if(changedAny)renderDrawer();
+    }catch(e){if(e.code==='expired')this.setStatus('expired');else if(!navigator.onLine)this.setStatus('offline');else{this.setStatus('error','No se pudo subir ('+(e.message||'error')+'). Toca para reintentar.');console.warn(e,e.detail)}}
+    finally{this.syncing=false;if(this.again){this.again=false;this.schedule()}}},
+  async syncIdeas(files,folder){
+    const f=files.find(x=>x.appProperties&&x.appProperties.guionero==='ideas');
+    if(f){S.drive.ideasFileId=f.id;const rmt=Date.parse(f.modifiedTime);
+      if(rmt>(S.drive.ideasSyncedAt||0)+1500){const d=await this.api('GET',API+'/files/'+f.id+'?alt=media');const data=typeof d==='string'?JSON.parse(d):d;
+        if(data&&Array.isArray(data.ideas)){const map=new Map(S.ideas.map(i=>[i.id,i]));let changed=false;
+          for(const ri of data.ideas){const li=map.get(ri.id);if(!li){S.ideas.push(ri);changed=true}else if((ri.updatedAt||0)>(li.updatedAt||0)){Object.assign(li,ri);changed=true}else if((li.updatedAt||0)>(ri.updatedAt||0))S.ideasDirty=true}
+          const rids=new Set(data.ideas.map(i=>i.id));if(S.ideas.some(i=>!rids.has(i.id)))S.ideasDirty=true;
+          if(changed&&document.body.classList.contains('drawer-open'))renderDrawer()}
+        S.drive.ideasSyncedAt=rmt}}
+    else{S.drive.ideasFileId=null;S.ideasDirty=true}
+    if(S.ideasDirty){const content=JSON.stringify({format:'guionero-ideas',version:1,ideas:S.ideas});
+      const meta=S.drive.ideasFileId?{name:'Banco de ideas.json'}:{name:'Banco de ideas.json',parents:[folder],mimeType:'application/json',appProperties:{guionero:'ideas'}};
+      const r=await this.upload(meta,content,S.drive.ideasFileId);S.drive.ideasFileId=r.id;S.drive.ideasSyncedAt=Date.parse(r.modifiedTime);S.ideasDirty=false}}
+};
+window.addEventListener('online',()=>{if(Drive.token)Drive.syncNow();else if(Drive.status==='offline')Drive.setStatus('local')});
+window.addEventListener('offline',()=>{if(Drive.token)Drive.setStatus('offline')});
+setInterval(()=>{if(Drive.token&&Drive.status!=='syncing'){if(Object.values(S.scripts).some(s=>s.dirty)||S.ideasDirty||S.pendingDeletes.length)Drive.syncNow();else if(now()-(S.drive.lastSync||0)>60000)Drive.syncNow()}},30000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow();else if(Drive.token)Drive.syncNow()});
+window.addEventListener('pagehide',saveNow);
+
+/* ================= arranque ================= */
+applyTheme();applyZoom();applyFocus();renderEditor();
+if(S.drive.email&&S.settings.clientId)Drive.setStatus('expired','Toca para reconectar con '+S.drive.email);else Drive.setStatus('local');
+if(S.settings.clientId)Drive.prepare();
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)&&!/claude|anthropic|usercontent/.test(location.hostname))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+})();
+</script>
+
+</body>
+</html>
