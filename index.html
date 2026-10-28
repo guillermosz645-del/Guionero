@@ -458,7 +458,7 @@ $('#btnFocus').addEventListener('click',()=>{S.settings.focus=!S.settings.focus;
 
 /* ================= editor ================= */
 const doc=$('#doc');
-function grow(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px'}
+function grow(ta){ta.style.height='auto';ta.style.height=(ta.scrollHeight+2)+'px'}
 function growAll(){doc.querySelectorAll('textarea').forEach(grow)}
 window.addEventListener('resize',debounce(growAll,120));
 let curRowId=null,curField='n',freeEl=null,savedRange=null;
@@ -852,7 +852,7 @@ const Drive={token:null,tokenExp:0,client:null,status:'local',syncing:false,time
       S.drive.lastSync=now();saveNow();this.setStatus('synced');
       if(changedCurrent){const a=document.activeElement;if(!(a&&a.closest&&a.closest('#doc')))renderEditor()}
       if(changedAny)renderDrawer();
-    }catch(e){if(e.code==='expired')this.setStatus('expired');else if(!navigator.onLine)this.setStatus('offline');else{this.setStatus('error','No se pudo subir ('+(e.message||'error')+'). Toca para reintentar.');console.warn(e,e.detail)}}
+    }catch(e){if(e.code==='expired')this.setStatus('expired');else if(!navigator.onLine)this.setStatus('offline');else{const d=String(e.detail||'');let why='No se pudo subir ('+(e.message||'error')+'). Toca para reintentar.';if(/accessNotConfigured|SERVICE_DISABLED|has not been used|is disabled/i.test(d)){why='Falta activar Google Drive API en tu proyecto de Google Cloud (APIs & Services → Library → Google Drive API → Enable). Espera 2 min y toca aquí.'}else if(e.status===403){why='Google negó el permiso (403). Revisa que tu correo esté en Test users y vuelve a conectar.'}this.setStatus('error',why);toast(why);console.warn(e,d)}}
     finally{this.syncing=false;if(this.again){this.again=false;this.schedule()}}},
   async syncIdeas(files,folder){
     const f=files.find(x=>x.appProperties&&x.appProperties.guionero==='ideas');
@@ -876,6 +876,7 @@ window.addEventListener('pagehide',saveNow);
 
 /* ================= arranque ================= */
 applyTheme();applyZoom();applyFocus();renderEditor();
+try{document.fonts&&document.fonts.ready.then(()=>growAll())}catch(e){}
 if(S.drive.email&&S.settings.clientId)Drive.setStatus('expired','Toca para reconectar con '+S.drive.email);else Drive.setStatus('local');
 if(S.settings.clientId)Drive.prepare();
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)&&!/claude|anthropic|usercontent/.test(location.hostname))navigator.serviceWorker.register('./sw.js').catch(()=>{});
