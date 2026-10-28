@@ -804,7 +804,7 @@ const Drive={token:null,tokenExp:0,client:null,status:'local',syncing:false,time
   signIn(){if(!S.settings.clientId){openSettings();return}
     if(this.client){try{this.client.requestAccessToken({prompt:S.drive.email?'':'consent',hint:S.drive.email||undefined})}catch(e){toast('No se pudo abrir el inicio de sesión de Google.')}return}
     this.prepare().then(ok=>{if(ok)toast('Listo, toca "Conectar" otra vez para abrir Google.');else if(this.status==='unavailable')toast('El inicio de sesión de Google no carga aquí. Usa tu página publicada.')})},
-  async onToken(r){if(r.error){this.onTokenError(r);return}this.token=r.access_token;this.tokenExp=now()+((+r.expires_in||3600)-60)*1000;
+  async onToken(r){if(r.error){this.onTokenError(r);return}try{if(!google.accounts.oauth2.hasGrantedAllScopes(r,'https://www.googleapis.com/auth/drive.file')){this.token=null;this.setStatus('error','No diste permiso de Drive. Vuelve a conectar y palomea la casilla de Google Drive.');toast('No diste permiso de Drive. Vuelve a conectar y palomea la casilla de Google Drive.');this.client&&this.client.requestAccessToken({prompt:'consent'});return}}catch(e){}this.token=r.access_token;this.tokenExp=now()+((+r.expires_in||3600)-60)*1000;
     try{const u=await this.api('GET','https://www.googleapis.com/oauth2/v3/userinfo');const changed=S.drive.email&&u.email&&S.drive.email!==u.email;
       if(changed){S.drive.folderId=null;S.drive.ideasFileId=null;S.drive.ideasSyncedAt=0;for(const s of Object.values(S.scripts)){s.driveId=null;s.syncedAt=0;s.dirty=true}S.ideasDirty=true;S.pendingDeletes=[]}
       S.drive.email=u.email||S.drive.email;S.drive.name=u.name||u.given_name||null;saveNow();renderChrome();toast('Conectado como '+(S.drive.email||'tu cuenta'))}catch(e){}
